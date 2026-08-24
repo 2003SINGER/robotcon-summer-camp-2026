@@ -1,0 +1,10 @@
+# CAD 与资料文件不可文本合并；Git 只记录版本，不尝试生成误导性的文本 diff。
+*.SLDPRT binary
+*.SLDASM binary
+*.STEP binary
+*.STP binary
+*.CWR binary
+*.PDF binary
+*.pdf binary
+*.zip binary
+

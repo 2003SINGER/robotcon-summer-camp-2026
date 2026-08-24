@@ -1,0 +1,27 @@
+# 以“——”开头的是本地大体积参考库，不纳入夏令营协作仓库。
+/——*
+
+# 本地软件、驱动和 NC 工具可能受许可证约束，不上传到 GitHub。
+/精雕软件及NC转换/
+
+# 常见本地/临时文件。
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
+*.temp
+
+# Keil / MDK 的本地编译输出（源代码、.ioc 和 .uvprojx 保留）。
+*.axf
+*.bin
+*.crf
+*.d
+*.dep
+*.hex
+*.htm
+*.lnp
+*.lst
+*.map
+*.o
+*.uvguix.*
+*.uvoptx
