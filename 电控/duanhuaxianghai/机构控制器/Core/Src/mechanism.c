@@ -155,7 +155,8 @@ static bool IsAtTarget(TuningMotorId id)
 {
   const Motor *motor = MotorFor(id);
   return motor != 0 &&
-         Absolute(motor->target_counts - (float)motor->total_counts) < runtime_tuning[id].target_tolerance_counts &&
+         Motor_IsTrajectoryComplete(motor) &&
+         Absolute(motor->goal_counts - (float)motor->total_counts) < runtime_tuning[id].target_tolerance_counts &&
          Absolute((float)motor->speed_rpm) < runtime_tuning[id].target_speed_tolerance_rpm;
 }
 
@@ -176,6 +177,21 @@ bool Mechanism_SetPid(TuningMotorId id, MechanismPidLoop loop,
   pid->kd = kd;
   pid->integral_limit = integral_limit;
   pid->output_limit = output_limit;
+  if ((motor->config.kind == MOTOR_KIND_M2006 && loop == MECHANISM_PID_VELOCITY) ||
+      (motor->config.kind == MOTOR_KIND_GM6020 && loop == MECHANISM_PID_POSITION)) {
+    motor->config.current_limit = output_limit;
+  }
+  Pid_Reset(pid);
+  return true;
+}
+
+bool Mechanism_SetDerivativeFilter(TuningMotorId id, MechanismPidLoop loop, float tau_s)
+{
+  Motor *motor = MotorFor(id);
+  PidController *pid;
+  if (mode != MECHANISM_MODE_DISARMED || motor == 0 || tau_s < 0.0f) return false;
+  pid = loop == MECHANISM_PID_POSITION ? &motor->config.position_pid : &motor->config.velocity_pid;
+  pid->derivative_tau_s = tau_s;
   Pid_Reset(pid);
   return true;
 }
@@ -185,6 +201,11 @@ bool Mechanism_SetCurrentLimit(TuningMotorId id, float current_limit)
   Motor *motor = MotorFor(id);
   if (mode != MECHANISM_MODE_DISARMED || motor == 0 || current_limit <= 0.0f) return false;
   motor->config.current_limit = current_limit;
+  if (motor->config.kind == MOTOR_KIND_M2006) {
+    motor->config.velocity_pid.output_limit = current_limit;
+  } else {
+    motor->config.position_pid.output_limit = current_limit;
+  }
   return true;
 }
 
@@ -203,6 +224,17 @@ bool Mechanism_SetTargetTolerance(TuningMotorId id, float counts, float speed_rp
   return true;
 }
 
+bool Mechanism_SetMotionLimits(TuningMotorId id, float max_velocity_counts_s,
+                               float max_acceleration_counts_s2)
+{
+  Motor *motor = MotorFor(id);
+  if (mode != MECHANISM_MODE_DISARMED || motor == 0 ||
+      max_velocity_counts_s <= 0.0f || max_acceleration_counts_s2 <= 0.0f) return false;
+  motor->config.trajectory_max_velocity_counts_s = max_velocity_counts_s;
+  motor->config.trajectory_max_acceleration_counts_s2 = max_acceleration_counts_s2;
+  return true;
+}
+
 bool Mechanism_RestoreDefaultTuning(void)
 {
   if (mode != MECHANISM_MODE_DISARMED) return false;
@@ -218,9 +250,15 @@ bool Mechanism_GetMotorTelemetry(TuningMotorId id, MechanismMotorTelemetry *tele
   telemetry->total_counts = motor->total_counts;
   telemetry->speed_rpm = motor->speed_rpm;
   telemetry->measured_current = motor->measured_current;
+  telemetry->goal_counts = motor->goal_counts;
   telemetry->target_counts = motor->target_counts;
+  telemetry->trajectory_velocity_counts_s = motor->trajectory_velocity_counts_s;
+  telemetry->trajectory_max_velocity_counts_s = motor->config.trajectory_max_velocity_counts_s;
+  telemetry->trajectory_max_acceleration_counts_s2 = motor->config.trajectory_max_acceleration_counts_s2;
   telemetry->feedforward_current = runtime_tuning[id].feedforward_current;
   telemetry->current_limit = motor->config.current_limit;
+  Pid_GetDiagnostics(&motor->config.position_pid, &telemetry->position_pid);
+  Pid_GetDiagnostics(&motor->config.velocity_pid, &telemetry->velocity_pid);
   telemetry->last_feedback_ms = motor->last_feedback_ms;
   telemetry->has_feedback = motor->has_feedback;
   return true;

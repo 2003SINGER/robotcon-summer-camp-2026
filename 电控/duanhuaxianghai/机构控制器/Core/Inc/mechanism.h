@@ -29,9 +29,15 @@ typedef struct {
   int32_t total_counts;
   int16_t speed_rpm;
   int16_t measured_current;
+  float goal_counts;
   float target_counts;
+  float trajectory_velocity_counts_s;
+  float trajectory_max_velocity_counts_s;
+  float trajectory_max_acceleration_counts_s2;
   float feedforward_current;
   float current_limit;
+  PidDiagnostics position_pid;
+  PidDiagnostics velocity_pid;
   uint32_t last_feedback_ms;
   bool has_feedback;
 } MechanismMotorTelemetry;
@@ -58,9 +64,12 @@ bool Mechanism_IsLoaderAtTarget(void);
 bool Mechanism_SetPid(TuningMotorId motor, MechanismPidLoop loop,
                       float kp, float ki, float kd,
                       float integral_limit, float output_limit);
+bool Mechanism_SetDerivativeFilter(TuningMotorId motor, MechanismPidLoop loop, float tau_s);
 bool Mechanism_SetCurrentLimit(TuningMotorId motor, float current_limit);
 bool Mechanism_SetFeedforward(TuningMotorId motor, float current);
 bool Mechanism_SetTargetTolerance(TuningMotorId motor, float counts, float speed_rpm);
+bool Mechanism_SetMotionLimits(TuningMotorId motor, float max_velocity_counts_s,
+                               float max_acceleration_counts_s2);
 bool Mechanism_RestoreDefaultTuning(void);
 bool Mechanism_GetMotorTelemetry(TuningMotorId motor, MechanismMotorTelemetry *telemetry);
 

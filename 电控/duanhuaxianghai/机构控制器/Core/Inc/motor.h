@@ -18,6 +18,8 @@ typedef struct {
   float current_limit;
   PidController position_pid;
   PidController velocity_pid;
+  float trajectory_max_velocity_counts_s;
+  float trajectory_max_acceleration_counts_s2;
 } MotorConfig;
 
 typedef struct {
@@ -30,7 +32,9 @@ typedef struct {
   volatile uint32_t last_feedback_ms;
   volatile bool has_feedback;
   int16_t last_raw_angle;
+  float goal_counts;
   float target_counts;
+  float trajectory_velocity_counts_s;
   float feedforward_current;
 } Motor;
 
@@ -39,6 +43,7 @@ void Motor_OnFeedback(Motor *motor, const uint8_t data[8], uint32_t now_ms);
 bool Motor_IsFeedbackFresh(const Motor *motor, uint32_t now_ms, uint32_t timeout_ms);
 void Motor_HoldCurrentPosition(Motor *motor);
 void Motor_SetTargetCounts(Motor *motor, float target_counts);
+bool Motor_IsTrajectoryComplete(const Motor *motor);
 int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s);
 
 #endif

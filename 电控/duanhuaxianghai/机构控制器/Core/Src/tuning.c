@@ -3,10 +3,17 @@
 #define M2006_CURRENT_LIMIT 4000.0f
 #define GM6020_CURRENT_LIMIT 20000.0f
 
+#define PID_CONFIG(kp_value, ki_value, kd_value, tau_value, integral_limit_value, output_limit_value) \
+  {kp_value, ki_value, kd_value, tau_value, 0.0f, 0.0f, 0.0f, integral_limit_value, output_limit_value, false, {0}}
 #define POSITION_PID(kp_value, output_limit_value) \
-  {kp_value, 0.0f, 0.0f, 0.0f, 0.0f, 2000.0f, output_limit_value}
+  PID_CONFIG(kp_value, 0.0f, 0.0f, 0.010f, 2000.0f, output_limit_value)
 #define VELOCITY_PID \
-  {0.60f, 80.0f, 0.0f, 0.0f, 0.0f, 50.0f, M2006_CURRENT_LIMIT}
+  PID_CONFIG(0.60f, 80.0f, 0.0f, 0.005f, 50.0f, M2006_CURRENT_LIMIT)
+
+#define M2006_TRAJECTORY_VELOCITY 163840.0f
+#define M2006_TRAJECTORY_ACCELERATION 546000.0f
+#define GM6020_TRAJECTORY_VELOCITY 27300.0f
+#define GM6020_TRAJECTORY_ACCELERATION 49200.0f
 
 /*
  * The only source-edit tuning table. CAN IDs and signs are boot-time
@@ -17,27 +24,31 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
   [TUNING_MOTOR_LOADER_A] = {
     "loader_a",
     {MOTOR_KIND_M2006, 0x201U, 1, 1, M2006_CURRENT_LIMIT,
-     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID},
+     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
+     M2006_TRAJECTORY_VELOCITY, M2006_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
   },
   [TUNING_MOTOR_LOADER_B] = {
     "loader_b",
     {MOTOR_KIND_M2006, 0x202U, 1, 1, M2006_CURRENT_LIMIT,
-     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID},
+     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
+     M2006_TRAJECTORY_VELOCITY, M2006_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
   },
   [TUNING_MOTOR_LIFT] = {
     "lift",
     /* 0x203 is provisional: inspect the assembled CAN bus before motion. */
     {MOTOR_KIND_M2006, 0x203U, 1, 1, M2006_CURRENT_LIMIT,
-     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID},
+     POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
+     M2006_TRAJECTORY_VELOCITY, M2006_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
   },
   [TUNING_MOTOR_ROTATOR] = {
     "rotator",
     {MOTOR_KIND_GM6020, 0x206U, 1, 1, GM6020_CURRENT_LIMIT,
      POSITION_PID(2.63f, GM6020_CURRENT_LIMIT),
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}},
+     PID_CONFIG(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f),
+     GM6020_TRAJECTORY_VELOCITY, GM6020_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
   }
 };
