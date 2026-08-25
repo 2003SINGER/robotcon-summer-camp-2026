@@ -6,7 +6,7 @@
 
 /*
  * The communication layer may only publish intent here.  RobotFsmTask owns
- * state transitions; ActuatorControlTask remains the sole writer of motor
+ * state transitions; MotorControlTask remains the sole writer of motor
  * current commands.
  */
 typedef enum {
