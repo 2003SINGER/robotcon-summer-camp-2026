@@ -15,6 +15,7 @@
 #define GM6020_TRAJECTORY_VELOCITY 27300.0f
 #define GM6020_TRAJECTORY_ACCELERATION 49200.0f
 #define ROTATOR_COUNTS_PER_DEGREE (8192.0f / 360.0f)
+#define ENCODER_COUNTS_PER_REVOLUTION 8192.0f
 
 /*
  * The only source-edit tuning table. CAN IDs and signs are boot-time
@@ -55,9 +56,20 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
   }
 };
 
+static const MotionSafetyProfile motion_safety_profiles[TUNING_MOTOR_COUNT] = {
+  [TUNING_MOTOR_LOADER_A] = {true, 0.0f, ENCODER_COUNTS_PER_REVOLUTION * 20.0f * 40.0f, 6000U, 10, 3000, 400U},
+  [TUNING_MOTOR_LOADER_B] = {true, 0.0f, ENCODER_COUNTS_PER_REVOLUTION * 20.0f * 37.0f, 6000U, 10, 3000, 400U},
+  [TUNING_MOTOR_LIFT] = {true, 0.0f, ENCODER_COUNTS_PER_REVOLUTION * 220.0f, 8000U, 10, 3000, 400U},
+  [TUNING_MOTOR_ROTATOR] = {false, 0.0f, 0.0f, 4000U, 5, 8000, 400U}
+};
+
 const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id)
 {
   return id < TUNING_MOTOR_COUNT ? &motor_profiles[id] : 0;
 }
 
 float Tuning_GetRotatorCountsPerDegree(void) { return ROTATOR_COUNTS_PER_DEGREE; }
+const MotionSafetyProfile *Tuning_GetMotionSafetyProfile(TuningMotorId id)
+{
+  return id < TUNING_MOTOR_COUNT ? &motion_safety_profiles[id] : 0;
+}

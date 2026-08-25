@@ -16,7 +16,11 @@ typedef enum {
   MECHANISM_FAULT_FEEDBACK_TIMEOUT,
   MECHANISM_FAULT_HAL,
   MECHANISM_FAULT_SCHEDULER,
-  MECHANISM_FAULT_EXTERNAL_ESTOP
+  MECHANISM_FAULT_EXTERNAL_ESTOP,
+  MECHANISM_FAULT_SOFT_LIMIT,
+  MECHANISM_FAULT_MOTION_TIMEOUT,
+  MECHANISM_FAULT_STALL,
+  MECHANISM_FAULT_LIFT_NOT_HOMED
 } MechanismFault;
 
 typedef enum {
@@ -52,10 +56,14 @@ void Mechanism_ControlTick(uint32_t now_ms);
 void Mechanism_Service(uint32_t now_ms);
 bool Mechanism_Arm(uint32_t now_ms);
 void Mechanism_EStop(MechanismFault reason);
+bool Mechanism_ClearFault(void);
 MechanismMode Mechanism_GetMode(void);
 MechanismFault Mechanism_GetFault(void);
 
 bool Mechanism_MoveLiftTo(float counts);
+/* Call this from the future debounced lower-limit GPIO reader. */
+void Mechanism_OnLiftHomeLimit(bool asserted);
+bool Mechanism_IsLiftHomed(void);
 bool Mechanism_TurnRotatorTo(float motor_degrees);
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
 bool Mechanism_IsLiftAtTarget(void);

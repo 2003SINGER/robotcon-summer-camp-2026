@@ -21,8 +21,21 @@ typedef struct {
   float target_speed_tolerance_rpm;
 } MotorProfile;
 
+/* Safety bounds are independent from task waypoints in robot_fsm.c.  Values
+ * are conservative provisional limits and must be verified against hardware. */
+typedef struct {
+  bool has_soft_limits;
+  float min_counts;
+  float max_counts;
+  uint32_t motion_timeout_ms;
+  int16_t stall_speed_rpm;
+  int16_t stall_current;
+  uint32_t stall_duration_ms;
+} MotionSafetyProfile;
+
 /* Read-only factory defaults. Runtime writes are mediated by mechanism.c. */
 const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id);
 float Tuning_GetRotatorCountsPerDegree(void);
+const MotionSafetyProfile *Tuning_GetMotionSafetyProfile(TuningMotorId id);
 
 #endif

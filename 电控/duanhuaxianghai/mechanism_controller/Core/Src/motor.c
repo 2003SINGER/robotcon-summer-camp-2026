@@ -117,6 +117,16 @@ void Motor_HoldCurrentPosition(Motor *motor)
   Pid_Reset(&motor->config.velocity_pid);
 }
 
+void Motor_SetPositionOrigin(Motor *motor)
+{
+  motor->total_counts = 0;
+  motor->goal_counts = 0.0f;
+  motor->target_counts = 0.0f;
+  motor->trajectory_velocity_counts_s = 0.0f;
+  Pid_Reset(&motor->config.position_pid);
+  Pid_Reset(&motor->config.velocity_pid);
+}
+
 void Motor_SetTargetCounts(Motor *motor, float target_counts)
 {
   motor->goal_counts = target_counts;

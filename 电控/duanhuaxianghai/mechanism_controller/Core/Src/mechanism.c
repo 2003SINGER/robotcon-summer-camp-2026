@@ -1,4 +1,5 @@
 #include "mechanism.h"
+#include "main.h"
 #include "board_config.h"
 #include "can_bus.h"
 #include "motor.h"
@@ -19,6 +20,17 @@ typedef struct {
 } RuntimeTuning;
 
 static RuntimeTuning runtime_tuning[TUNING_MOTOR_COUNT];
+
+typedef struct {
+  bool active;
+  uint32_t started_ms;
+  uint32_t stalled_since_ms;
+} MotionWatch;
+
+static MotionWatch motion_watch[TUNING_MOTOR_COUNT];
+static bool lift_homed;
+
+static bool IsAtTarget(TuningMotorId id);
 
 static void PublishTelemetry(TuningMotorId id)
 {
@@ -61,6 +73,24 @@ static float Absolute(float value)
   return value < 0.0f ? -value : value;
 }
 
+static bool IsWithinSoftLimits(TuningMotorId id, float counts)
+{
+  const MotionSafetyProfile *safety = Tuning_GetMotionSafetyProfile(id);
+  return safety != 0 && (!safety->has_soft_limits ||
+                         (counts >= safety->min_counts && counts <= safety->max_counts));
+}
+
+static bool SetTarget(TuningMotorId id, Motor *motor, float counts)
+{
+  if (!IsWithinSoftLimits(id, counts)) {
+    Mechanism_EStop(MECHANISM_FAULT_SOFT_LIMIT);
+    return false;
+  }
+  Motor_SetTargetCounts(motor, counts);
+  motion_watch[id] = (MotionWatch){true, HAL_GetTick(), 0U};
+  return true;
+}
+
 void Mechanism_Init(void)
 {
   LoadDefaultProfile(TUNING_MOTOR_LOADER_A);
@@ -69,6 +99,8 @@ void Mechanism_Init(void)
   LoadDefaultProfile(TUNING_MOTOR_ROTATOR);
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
+  lift_homed = false;
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
   }
@@ -94,6 +126,7 @@ bool Mechanism_Arm(uint32_t now_ms)
   Motor_HoldCurrentPosition(&rotator);
   lift.feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current;
   rotator.feedforward_current = runtime_tuning[TUNING_MOTOR_ROTATOR].feedforward_current;
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   mode = MECHANISM_MODE_READY;
   return true;
 }
@@ -102,6 +135,15 @@ void Mechanism_EStop(MechanismFault reason)
 {
   mode = MECHANISM_MODE_FAULT;
   fault = reason;
+}
+
+bool Mechanism_ClearFault(void)
+{
+  if (mode != MECHANISM_MODE_FAULT) return false;
+  mode = MECHANISM_MODE_DISARMED;
+  fault = MECHANISM_FAULT_NONE;
+  lift_homed = false;
+  return true;
 }
 
 void Mechanism_ControlTick(uint32_t now_ms)
@@ -134,6 +176,32 @@ void Mechanism_Service(uint32_t now_ms)
       CanBus_GetConsecutiveTxDropCount() >= CAN_TX_DROP_FAULT_THRESHOLD) {
     Mechanism_EStop(MECHANISM_FAULT_HAL);
   }
+  if (mode == MECHANISM_MODE_READY) {
+    for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+      Motor *motor = MotorFor(id);
+      const MotionSafetyProfile *safety = Tuning_GetMotionSafetyProfile(id);
+      if (motor == 0 || safety == 0 || !motion_watch[id].active) continue;
+      if (IsAtTarget(id)) {
+        motion_watch[id] = (MotionWatch){0};
+        continue;
+      }
+      if ((uint32_t)(now_ms - motion_watch[id].started_ms) > safety->motion_timeout_ms) {
+        Mechanism_EStop(MECHANISM_FAULT_MOTION_TIMEOUT);
+        break;
+      }
+      if (Absolute(motor->goal_counts - (float)motor->total_counts) > runtime_tuning[id].target_tolerance_counts &&
+          Absolute((float)motor->speed_rpm) <= (float)safety->stall_speed_rpm &&
+          Absolute((float)motor->measured_current) >= (float)safety->stall_current) {
+        if (motion_watch[id].stalled_since_ms == 0U) motion_watch[id].stalled_since_ms = now_ms;
+        if ((uint32_t)(now_ms - motion_watch[id].stalled_since_ms) > safety->stall_duration_ms) {
+          Mechanism_EStop(MECHANISM_FAULT_STALL);
+          break;
+        }
+      } else {
+        motion_watch[id].stalled_since_ms = 0U;
+      }
+    }
+  }
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
   }
@@ -145,23 +213,34 @@ MechanismFault Mechanism_GetFault(void) { return fault; }
 bool Mechanism_MoveLiftTo(float counts)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  Motor_SetTargetCounts(&lift, counts);
-  return true;
+  if (!lift_homed) {
+    Mechanism_EStop(MECHANISM_FAULT_LIFT_NOT_HOMED);
+    return false;
+  }
+  return SetTarget(TUNING_MOTOR_LIFT, &lift, counts);
 }
+
+void Mechanism_OnLiftHomeLimit(bool asserted)
+{
+  if (!asserted) return;
+  Motor_SetPositionOrigin(&lift);
+  lift_homed = true;
+  motion_watch[TUNING_MOTOR_LIFT] = (MotionWatch){0};
+}
+
+bool Mechanism_IsLiftHomed(void) { return lift_homed; }
 
 bool Mechanism_TurnRotatorTo(float motor_degrees)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  Motor_SetTargetCounts(&rotator, motor_degrees * Tuning_GetRotatorCountsPerDegree());
-  return true;
+  return SetTarget(TUNING_MOTOR_ROTATOR, &rotator, motor_degrees * Tuning_GetRotatorCountsPerDegree());
 }
 
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  Motor_SetTargetCounts(&loader_a, motor_a_counts);
-  Motor_SetTargetCounts(&loader_b, motor_b_counts);
-  return true;
+  return SetTarget(TUNING_MOTOR_LOADER_A, &loader_a, motor_a_counts) &&
+         SetTarget(TUNING_MOTOR_LOADER_B, &loader_b, motor_b_counts);
 }
 
 static bool IsAtTarget(TuningMotorId id)

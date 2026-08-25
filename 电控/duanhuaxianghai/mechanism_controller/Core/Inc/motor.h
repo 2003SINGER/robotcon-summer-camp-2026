@@ -42,6 +42,7 @@ void Motor_Init(Motor *motor, const MotorConfig *config);
 void Motor_OnFeedback(Motor *motor, const uint8_t data[8], uint32_t now_ms);
 bool Motor_IsFeedbackFresh(const Motor *motor, uint32_t now_ms, uint32_t timeout_ms);
 void Motor_HoldCurrentPosition(Motor *motor);
+void Motor_SetPositionOrigin(Motor *motor);
 void Motor_SetTargetCounts(Motor *motor, float target_counts);
 bool Motor_IsTrajectoryComplete(const Motor *motor);
 int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s);
