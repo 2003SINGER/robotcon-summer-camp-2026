@@ -159,10 +159,9 @@ void DebugMon_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-
+  AppTime_IncrementFromSysTick();
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-  AppTime_IncrementFromSysTick();
   xPortSysTickHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 

@@ -20,6 +20,12 @@ typedef struct {
 
 static RuntimeTuning runtime_tuning[TUNING_MOTOR_COUNT];
 
+static void PublishTelemetry(TuningMotorId id)
+{
+  MechanismMotorTelemetry snapshot;
+  if (Mechanism_GetMotorTelemetry(id, &snapshot)) g_mechanism_telemetry[id] = snapshot;
+}
+
 static Motor *MotorFor(TuningMotorId id)
 {
   switch (id) {
@@ -64,7 +70,7 @@ void Mechanism_Init(void)
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
-    (void)Mechanism_GetMotorTelemetry(id, (MechanismMotorTelemetry *)&g_mechanism_telemetry[id]);
+    PublishTelemetry(id);
   }
 }
 
@@ -129,7 +135,7 @@ void Mechanism_Service(uint32_t now_ms)
     Mechanism_EStop(MECHANISM_FAULT_HAL);
   }
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
-    (void)Mechanism_GetMotorTelemetry(id, (MechanismMotorTelemetry *)&g_mechanism_telemetry[id]);
+    PublishTelemetry(id);
   }
 }
 

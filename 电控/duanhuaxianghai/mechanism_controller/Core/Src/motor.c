@@ -1,4 +1,5 @@
 #include "motor.h"
+#include "board_config.h"
 
 static int16_t ReadBe16(const uint8_t data[2])
 {
@@ -130,7 +131,7 @@ int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s)
 {
   float output;
 
-  if (!Motor_IsFeedbackFresh(motor, now_ms, 20U)) {
+  if (!Motor_IsFeedbackFresh(motor, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS)) {
     Pid_Reset(&motor->config.position_pid);
     Pid_Reset(&motor->config.velocity_pid);
     return 0;
