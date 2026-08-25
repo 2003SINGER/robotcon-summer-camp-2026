@@ -12,6 +12,11 @@
 
 #define M2006_TRAJECTORY_VELOCITY 163840.0f
 #define M2006_TRAJECTORY_ACCELERATION 546000.0f
+/* Z axis starts deliberately below the horizontal loader profile.  Tune it
+ * upward only after direction, gravity feed-forward and soft travel are
+ * verified on the real mechanism. */
+#define M2006_LIFT_TRAJECTORY_VELOCITY 98304.0f
+#define M2006_LIFT_TRAJECTORY_ACCELERATION 327600.0f
 #define GM6020_TRAJECTORY_VELOCITY 27300.0f
 #define GM6020_TRAJECTORY_ACCELERATION 49200.0f
 #define ROTATOR_COUNTS_PER_DEGREE (8192.0f / 360.0f)
@@ -43,7 +48,7 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
      * Z-axis C610 to ID 3 with its Set button before arming this firmware. */
     {MOTOR_KIND_M2006, 0x203U, 1, 1, M2006_CURRENT_LIMIT,
      POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
-     M2006_TRAJECTORY_VELOCITY, M2006_TRAJECTORY_ACCELERATION},
+     M2006_LIFT_TRAJECTORY_VELOCITY, M2006_LIFT_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
   },
   [TUNING_MOTOR_ROTATOR] = {
