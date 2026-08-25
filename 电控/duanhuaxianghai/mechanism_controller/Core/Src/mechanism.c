@@ -143,10 +143,10 @@ bool Mechanism_MoveLiftTo(float counts)
   return true;
 }
 
-bool Mechanism_TurnRotatorBy(float motor_degrees)
+bool Mechanism_TurnRotatorTo(float motor_degrees)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  Motor_SetTargetCounts(&rotator, rotator.target_counts + motor_degrees * Tuning_GetMotionProfile()->rotator_counts_per_degree);
+  Motor_SetTargetCounts(&rotator, motor_degrees * Tuning_GetRotatorCountsPerDegree());
   return true;
 }
 
@@ -157,14 +157,6 @@ bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts)
   Motor_SetTargetCounts(&loader_b, motor_b_counts);
   return true;
 }
-
-bool Mechanism_MoveLoaderOut(void)
-{
-  const MotionProfile *motion = Tuning_GetMotionProfile();
-  return Mechanism_MoveLoaderTo(motion->loader_a_out_counts, motion->loader_b_out_counts);
-}
-
-bool Mechanism_RetractLoader(void) { return Mechanism_MoveLoaderTo(0.0f, 0.0f); }
 
 static bool IsAtTarget(TuningMotorId id)
 {

@@ -14,6 +14,7 @@
 #define M2006_TRAJECTORY_ACCELERATION 546000.0f
 #define GM6020_TRAJECTORY_VELOCITY 27300.0f
 #define GM6020_TRAJECTORY_ACCELERATION 49200.0f
+#define ROTATOR_COUNTS_PER_DEGREE (8192.0f / 360.0f)
 
 /*
  * The only source-edit tuning table. CAN IDs and signs are boot-time
@@ -54,18 +55,9 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
   }
 };
 
-static const MotionProfile motion_profile = {
-  8192.0f * 20.0f * 38.0f,
-  8192.0f * 20.0f * 35.0f,
-  8192.0f / 360.0f
-};
-
 const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id)
 {
   return id < TUNING_MOTOR_COUNT ? &motor_profiles[id] : 0;
 }
 
-const MotionProfile *Tuning_GetMotionProfile(void)
-{
-  return &motion_profile;
-}
+float Tuning_GetRotatorCountsPerDegree(void) { return ROTATOR_COUNTS_PER_DEGREE; }

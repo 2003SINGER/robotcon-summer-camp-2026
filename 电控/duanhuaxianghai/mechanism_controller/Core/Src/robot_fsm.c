@@ -2,6 +2,25 @@
 #include "command_mailbox.h"
 #include "mechanism.h"
 
+/* Competition-flow positions are local to this state machine. They are
+ * relative to the encoder origin captured when the mechanism is armed. */
+#define FSM_LOADER_A_RETRACTED_COUNTS  0.0f
+#define FSM_LOADER_B_RETRACTED_COUNTS  0.0f
+#define FSM_LOADER_A_PICK_COUNTS       (8192.0f * 20.0f * 38.0f)
+#define FSM_LOADER_B_PICK_COUNTS       (8192.0f * 20.0f * 35.0f)
+
+/* Current bench-sequence references: verify each value before it is used by
+ * a competition state. */
+#define FSM_LIFT_HOME_COUNTS           0.0f
+#define FSM_LIFT_REFERENCE_1_COUNTS    (8192.0f * 123.2f)
+#define FSM_LIFT_REFERENCE_2_COUNTS    (8192.0f * (123.2f + 81.8f))
+#define FSM_LIFT_REFERENCE_3_COUNTS    (8192.0f * 123.2f)
+#define FSM_LIFT_REFERENCE_4_COUNTS    (8192.0f * (123.2f - 72.0f))
+#define FSM_LIFT_REFERENCE_5_COUNTS    (8192.0f * (123.2f - 72.0f + 108.0f))
+
+#define FSM_ROTATOR_HOME_DEGREES       0.0f
+#define FSM_ROTATOR_FLIPPED_DEGREES    180.0f
+
 static RobotFsmState state;
 static bool grip_confirmed;
 
@@ -15,7 +34,7 @@ bool RobotFsm_StartRetrieve(void)
 {
   if (state != ROBOT_FSM_IDLE || Mechanism_GetMode() != MECHANISM_MODE_READY) return false;
   grip_confirmed = false;
-  if (!Mechanism_MoveLoaderOut()) return false;
+  if (!Mechanism_MoveLoaderTo(FSM_LOADER_A_PICK_COUNTS, FSM_LOADER_B_PICK_COUNTS)) return false;
   state = ROBOT_FSM_LOADER_EXTENDING;
   return true;
 }
@@ -58,7 +77,10 @@ void RobotFsm_Tick(uint32_t now_ms)
       break;
     case ROBOT_FSM_WAIT_GRIP_CONFIRM:
       /* Vacuum is another board: this event is supplied by its future status frame. */
-      if (grip_confirmed && Mechanism_RetractLoader()) state = ROBOT_FSM_LOADER_RETRACTING;
+      if (grip_confirmed &&
+          Mechanism_MoveLoaderTo(FSM_LOADER_A_RETRACTED_COUNTS, FSM_LOADER_B_RETRACTED_COUNTS)) {
+        state = ROBOT_FSM_LOADER_RETRACTING;
+      }
       break;
     case ROBOT_FSM_LOADER_RETRACTING:
       if (Mechanism_IsLoaderAtTarget()) state = ROBOT_FSM_COMPLETE;

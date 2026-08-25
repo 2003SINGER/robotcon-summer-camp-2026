@@ -18,7 +18,7 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 
 四电机不各自开任务；伸缩双电机、Z 轴和翻转由同一个 1 ms 控制任务计算并在同一周期打包发出，因此不会因任务调度把两段伸缩拆散。FreeRTOS 任务与队列均改为**静态分配**，没有运行期堆分配；栈溢出直接进入机构故障。
 
-参数不再散落在控制逻辑中：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差、伸缩行程以及最大速度/加速度都集中在 `Core/Src/tuning.c`。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈，后续改一套机构参数不会波及流程和总线代码。
+硬件与控制参数集中在 `Core/Src/tuning.c`：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差以及最大速度/加速度。比赛动作的伸缩距离、各段 Z 轴高度和翻转角度集中在 `Core/Src/robot_fsm.c` 顶部。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈。
 
 上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩，也不会主动在 CAN1 发送电流帧。上层通信接入后，必须通过命令邮箱请求 `ARM`，并且四台电机均已收到新反馈，才会进入 `READY`。反馈超过 20 ms 未更新、或 CAN 发送连续异常会切到故障并发送零电流。
 
@@ -56,7 +56,7 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：
 
 - `motor_profiles`：CAN ID、反馈/输出方向、限流、位置/速度 PID、重力前馈和到位容差；
-- `motion_profile`：两台伸缩电机各自的伸出目标、翻转的编码器换算；
+- `robot_fsm.c` 顶部的 `FSM_*` 宏：每个比赛动作的伸缩目标、Z 轴高度、翻转角度；
 - `trajectory_max_velocity_counts_s` / `trajectory_max_acceleration_counts_s2`：位置目标的速度/加速度约束。目标不会一步跳到远端，而是以受限轨迹进入位置环。
 - CAN ID 和正反向属于启动时总线过滤配置，必须改源码、重新刷写，不能运行时改。
 

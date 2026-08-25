@@ -56,10 +56,8 @@ MechanismMode Mechanism_GetMode(void);
 MechanismFault Mechanism_GetFault(void);
 
 bool Mechanism_MoveLiftTo(float counts);
-bool Mechanism_TurnRotatorBy(float motor_degrees);
+bool Mechanism_TurnRotatorTo(float motor_degrees);
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
-bool Mechanism_MoveLoaderOut(void);
-bool Mechanism_RetractLoader(void);
 bool Mechanism_IsLiftAtTarget(void);
 bool Mechanism_IsRotatorAtTarget(void);
 bool Mechanism_IsLoaderAtTarget(void);

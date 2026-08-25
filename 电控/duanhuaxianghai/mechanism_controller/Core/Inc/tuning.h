@@ -21,14 +21,8 @@ typedef struct {
   float target_speed_tolerance_rpm;
 } MotorProfile;
 
-typedef struct {
-  float loader_a_out_counts;
-  float loader_b_out_counts;
-  float rotator_counts_per_degree;
-} MotionProfile;
-
 /* Read-only factory defaults. Runtime writes are mediated by mechanism.c. */
 const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id);
-const MotionProfile *Tuning_GetMotionProfile(void);
+float Tuning_GetRotatorCountsPerDegree(void);
 
 #endif
