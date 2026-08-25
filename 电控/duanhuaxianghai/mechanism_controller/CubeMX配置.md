@@ -28,4 +28,4 @@ FDCAN IRQ 可以优先级 0，因为中断内不调用任何 FreeRTOS API；它�
 - 不要把旧项目的阻塞 `HAL_Delay()`、启动后自动 180° 翻转、或目标 38/35 圈测试动作放回 `main()`。
 - SysTick/PendSV/SVC 属于 FreeRTOS。若 CubeMX 重生成中断文件，须保留 `FreeRTOSConfig.h` 的 FreeRTOS handler 映射和 `SysTick_Handler()` 中的 `HAL_IncTick()`、`AppTime_IncrementFromSysTick()`、`xPortSysTickHandler()` 调用。
 
-`机构控制器.ioc` 只作为引脚基线，当前可构建入口是 `CMakeLists.txt`，无需重新生成即可使用。
+`mechanism_controller.ioc` 只作为引脚基线，当前可构建入口是 `CMakeLists.txt`，无需重新生成即可使用。
