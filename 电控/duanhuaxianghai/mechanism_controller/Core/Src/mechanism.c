@@ -124,7 +124,8 @@ void Mechanism_Service(uint32_t now_ms)
   if (mode == MECHANISM_MODE_READY && !IsFresh(now_ms)) {
     Mechanism_EStop(MECHANISM_FAULT_FEEDBACK_TIMEOUT);
   }
-  if (mode == MECHANISM_MODE_READY && CanBus_GetTxDropCount() >= CAN_TX_DROP_FAULT_THRESHOLD) {
+  if (mode == MECHANISM_MODE_READY &&
+      CanBus_GetConsecutiveTxDropCount() >= CAN_TX_DROP_FAULT_THRESHOLD) {
     Mechanism_EStop(MECHANISM_FAULT_HAL);
   }
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {

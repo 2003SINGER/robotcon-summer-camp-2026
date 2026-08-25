@@ -15,8 +15,8 @@
  * DJI IDs. Disable after CAN IDs are verified to reduce interrupt load. */
 #define CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS 1U
 
-/* A nonzero accumulation means the transmit FIFO has remained unavailable
- * long enough to make a controlled stop safer than continuing blindly. */
+/* Consecutive failures mean the transmit FIFO has remained unavailable long
+ * enough to make a controlled stop safer than continuing blindly. */
 #define CAN_TX_DROP_FAULT_THRESHOLD          20U
 
 #endif

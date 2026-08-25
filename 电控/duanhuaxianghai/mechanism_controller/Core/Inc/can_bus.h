@@ -19,6 +19,7 @@ void CanBus_Init(void);
 void CanBus_SendM2006Currents(int16_t loader_a, int16_t loader_b, int16_t lift);
 void CanBus_SendGM6020Current(int16_t rotator);
 uint32_t CanBus_GetTxDropCount(void);
+uint32_t CanBus_GetConsecutiveTxDropCount(void);
 bool CanBus_GetDiagnostics(CanBusDiagnostics *diagnostics);
 
 #endif

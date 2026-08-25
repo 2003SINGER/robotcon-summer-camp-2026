@@ -5,6 +5,7 @@
 #include "tuning.h"
 
 static volatile uint32_t tx_drop_count = 0U;
+static volatile uint32_t consecutive_tx_drop_count = 0U;
 /* Deliberately global for a first bench session: CLion/ST-Link can watch this
  * symbol without adding a UART protocol before CAN IDs are known. */
 volatile CanBusDiagnostics g_can_bus_diagnostics;
@@ -66,6 +67,9 @@ static void Send(uint16_t identifier, const uint8_t data[8])
   if (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0U ||
       HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &header, (uint8_t *)data) != HAL_OK) {
     ++tx_drop_count;
+    ++consecutive_tx_drop_count;
+  } else {
+    consecutive_tx_drop_count = 0U;
   }
 }
 
@@ -86,6 +90,7 @@ void CanBus_SendGM6020Current(int16_t rotator)
 }
 
 uint32_t CanBus_GetTxDropCount(void) { return tx_drop_count; }
+uint32_t CanBus_GetConsecutiveTxDropCount(void) { return consecutive_tx_drop_count; }
 
 bool CanBus_GetDiagnostics(CanBusDiagnostics *destination)
 {

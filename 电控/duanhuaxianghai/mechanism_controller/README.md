@@ -30,7 +30,7 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 | Z 轴 | M2006 | `0x203` 暂定 | 必须上电监听后确认。已预留重力前馈。 |
 | 翻转 | GM6020 | `0x206` | 发送组 `0x1FF` 的第二槽位。 |
 
-CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke` 与 `jiaojingwen` 实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。
+CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。
 
 首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
