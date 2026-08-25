@@ -12,6 +12,8 @@ MechanismTask，10 ms：反馈超时与故障处理
 RobotFsmTask，20 ms：非阻塞动作序列
 ```
 
+参数不再散落在控制逻辑中：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差和伸缩行程都集中在 `Core/Src/tuning.c`。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈，后续改一套机构参数不会波及流程和总线代码。
+
 上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩。上层通信接入后，必须在四台电机均已收到新反馈的条件下调用 `Mechanism_Arm()`，之后才可发机构命令。反馈超过 20 ms 未更新会切到故障并持续发送零电流。
 
 ## 已确认的映射
@@ -34,6 +36,16 @@ cmake --build --preset stm32-clt
 ```
 
 产物位于 `build/`：`mechanism_controller.elf/.hex/.bin`。该目录不纳入 Git。
+
+## 调参
+
+日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：
+
+- `motor_profiles`：CAN ID、反馈/输出方向、限流、位置/速度 PID、重力前馈和到位容差；
+- `motion_profile`：两台伸缩电机各自的伸出目标、翻转的编码器换算；
+- CAN ID 和正反向属于启动时总线过滤配置，必须改源码、重新刷写，不能运行时改。
+
+为接入串口或板间 CAN 调试器，`mechanism.h` 已提供运行时 API：`Mechanism_SetPid`、`Mechanism_SetCurrentLimit`、`Mechanism_SetFeedforward`、`Mechanism_SetTargetTolerance`、`Mechanism_GetMotorTelemetry` 与 `Mechanism_RestoreDefaultTuning`。所有写参数操作只在 `DISARMED` 状态接受；它们是 RAM 临时值，断电或恢复默认后回到 `tuning.c` 的值。当前没有占用串口，也没有凭空定义板间 CAN 协议。
 
 ## 上板前必须确认
 

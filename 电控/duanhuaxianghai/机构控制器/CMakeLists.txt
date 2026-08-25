@@ -17,6 +17,7 @@ add_executable(${PROJECT_NAME}.elf
   Core/Src/motor.c
   Core/Src/pid.c
   Core/Src/robot_fsm.c
+  Core/Src/tuning.c
   Middlewares/FreeRTOS/Source/tasks.c
   Middlewares/FreeRTOS/Source/queue.c
   Middlewares/FreeRTOS/Source/list.c

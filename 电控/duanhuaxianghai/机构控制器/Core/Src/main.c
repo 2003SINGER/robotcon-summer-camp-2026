@@ -26,8 +26,8 @@ int main(void)
 
   MX_GPIO_Init();
   MX_FDCAN1_Init();
-  CanBus_Init();
   Mechanism_Init();
+  CanBus_Init();
 
   if (!AppTasks_Create()) {
     Mechanism_EStop(MECHANISM_FAULT_SCHEDULER);

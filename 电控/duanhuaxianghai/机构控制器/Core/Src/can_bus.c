@@ -2,6 +2,7 @@
 #include "board_config.h"
 #include "fdcan.h"
 #include "mechanism.h"
+#include "tuning.h"
 
 static volatile uint32_t tx_drop_count = 0U;
 
@@ -19,10 +20,9 @@ static void AddExactFilter(uint32_t index, uint16_t identifier)
 
 void CanBus_Init(void)
 {
-  AddExactFilter(0U, CAN_ID_LOADER_MOTOR_A);
-  AddExactFilter(1U, CAN_ID_LOADER_MOTOR_B);
-  AddExactFilter(2U, CAN_ID_LIFT_MOTOR);
-  AddExactFilter(3U, CAN_ID_ROTATOR_MOTOR);
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    AddExactFilter((uint32_t)id, Tuning_GetMotorProfile(id)->motor.feedback_id);
+  }
   if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK ||
       HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0U) != HAL_OK) {
     Error_Handler();

@@ -2,6 +2,7 @@
 #include "board_config.h"
 #include "can_bus.h"
 #include "motor.h"
+#include "tuning.h"
 
 static Motor loader_a;
 static Motor loader_b;
@@ -10,27 +11,35 @@ static Motor rotator;
 static volatile MechanismMode mode = MECHANISM_MODE_DISARMED;
 static volatile MechanismFault fault = MECHANISM_FAULT_NONE;
 
-static const MotorConfig loader_a_config = {
-  MOTOR_KIND_M2006, CAN_ID_LOADER_MOTOR_A, LOADER_A_FEEDBACK_SIGN, LOADER_A_CURRENT_SIGN, M2006_CURRENT_LIMIT,
-  {0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 2000.0f, 1600.0f},
-  {0.60f, 80.0f, 0.0f, 0.0f, 0.0f, 50.0f, M2006_CURRENT_LIMIT}
-};
-static const MotorConfig loader_b_config = {
-  MOTOR_KIND_M2006, CAN_ID_LOADER_MOTOR_B, LOADER_B_FEEDBACK_SIGN, LOADER_B_CURRENT_SIGN, M2006_CURRENT_LIMIT,
-  {0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 2000.0f, 1600.0f},
-  {0.60f, 80.0f, 0.0f, 0.0f, 0.0f, 50.0f, M2006_CURRENT_LIMIT}
-};
-static const MotorConfig lift_config = {
-  MOTOR_KIND_M2006, CAN_ID_LIFT_MOTOR, LIFT_FEEDBACK_SIGN, LIFT_CURRENT_SIGN, M2006_CURRENT_LIMIT,
-  {0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 2000.0f, 1600.0f},
-  {0.60f, 80.0f, 0.0f, 0.0f, 0.0f, 50.0f, M2006_CURRENT_LIMIT}
-};
-static const MotorConfig rotator_config = {
-  MOTOR_KIND_GM6020, CAN_ID_ROTATOR_MOTOR, ROTATOR_FEEDBACK_SIGN, ROTATOR_CURRENT_SIGN, GM6020_CURRENT_LIMIT,
-  /* Converted from the source's degree-based proportional controller; tune on hardware. */
-  {2.63f, 0.0f, 0.0f, 0.0f, 0.0f, 2000.0f, GM6020_CURRENT_LIMIT},
-  {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
-};
+typedef struct {
+  float feedforward_current;
+  float target_tolerance_counts;
+  float target_speed_tolerance_rpm;
+} RuntimeTuning;
+
+static RuntimeTuning runtime_tuning[TUNING_MOTOR_COUNT];
+
+static Motor *MotorFor(TuningMotorId id)
+{
+  switch (id) {
+    case TUNING_MOTOR_LOADER_A: return &loader_a;
+    case TUNING_MOTOR_LOADER_B: return &loader_b;
+    case TUNING_MOTOR_LIFT: return &lift;
+    case TUNING_MOTOR_ROTATOR: return &rotator;
+    default: return 0;
+  }
+}
+
+static void LoadDefaultProfile(TuningMotorId id)
+{
+  Motor *motor = MotorFor(id);
+  const MotorProfile *profile = Tuning_GetMotorProfile(id);
+  if (motor == 0 || profile == 0) return;
+  Motor_Init(motor, &profile->motor);
+  runtime_tuning[id].feedforward_current = profile->default_feedforward_current;
+  runtime_tuning[id].target_tolerance_counts = profile->target_tolerance_counts;
+  runtime_tuning[id].target_speed_tolerance_rpm = profile->target_speed_tolerance_rpm;
+}
 
 static bool IsFresh(uint32_t now_ms)
 {
@@ -47,20 +56,23 @@ static float Absolute(float value)
 
 void Mechanism_Init(void)
 {
-  Motor_Init(&loader_a, &loader_a_config);
-  Motor_Init(&loader_b, &loader_b_config);
-  Motor_Init(&lift, &lift_config);
-  Motor_Init(&rotator, &rotator_config);
+  LoadDefaultProfile(TUNING_MOTOR_LOADER_A);
+  LoadDefaultProfile(TUNING_MOTOR_LOADER_B);
+  LoadDefaultProfile(TUNING_MOTOR_LIFT);
+  LoadDefaultProfile(TUNING_MOTOR_ROTATOR);
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
 }
 
 void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms)
 {
-  if (identifier == CAN_ID_LOADER_MOTOR_A) Motor_OnFeedback(&loader_a, data, now_ms);
-  else if (identifier == CAN_ID_LOADER_MOTOR_B) Motor_OnFeedback(&loader_b, data, now_ms);
-  else if (identifier == CAN_ID_LIFT_MOTOR) Motor_OnFeedback(&lift, data, now_ms);
-  else if (identifier == CAN_ID_ROTATOR_MOTOR) Motor_OnFeedback(&rotator, data, now_ms);
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    Motor *motor = MotorFor(id);
+    if (motor != 0 && identifier == motor->config.feedback_id) {
+      Motor_OnFeedback(motor, data, now_ms);
+      return;
+    }
+  }
 }
 
 bool Mechanism_Arm(uint32_t now_ms)
@@ -70,8 +82,8 @@ bool Mechanism_Arm(uint32_t now_ms)
   Motor_HoldCurrentPosition(&loader_b);
   Motor_HoldCurrentPosition(&lift);
   Motor_HoldCurrentPosition(&rotator);
-  lift.feedforward_current = LIFT_GRAVITY_CURRENT;
-  rotator.feedforward_current = ROTATOR_GRAVITY_CURRENT;
+  lift.feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current;
+  rotator.feedforward_current = runtime_tuning[TUNING_MOTOR_ROTATOR].feedforward_current;
   mode = MECHANISM_MODE_READY;
   return true;
 }
@@ -119,7 +131,7 @@ bool Mechanism_MoveLiftTo(float counts)
 bool Mechanism_TurnRotatorBy(float motor_degrees)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  Motor_SetTargetCounts(&rotator, rotator.target_counts + motor_degrees * (8192.0f / 360.0f));
+  Motor_SetTargetCounts(&rotator, rotator.target_counts + motor_degrees * Tuning_GetMotionProfile()->rotator_counts_per_degree);
   return true;
 }
 
@@ -133,17 +145,83 @@ bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts)
 
 bool Mechanism_MoveLoaderOut(void)
 {
-  return Mechanism_MoveLoaderTo((float)LOADER_A_OUT_COUNTS, (float)LOADER_B_OUT_COUNTS);
+  const MotionProfile *motion = Tuning_GetMotionProfile();
+  return Mechanism_MoveLoaderTo(motion->loader_a_out_counts, motion->loader_b_out_counts);
 }
 
 bool Mechanism_RetractLoader(void) { return Mechanism_MoveLoaderTo(0.0f, 0.0f); }
 
-static bool IsAtTarget(const Motor *motor)
+static bool IsAtTarget(TuningMotorId id)
 {
-  return Absolute(motor->target_counts - (float)motor->total_counts) < 1000.0f &&
-         Absolute((float)motor->speed_rpm) < 30.0f;
+  const Motor *motor = MotorFor(id);
+  return motor != 0 &&
+         Absolute(motor->target_counts - (float)motor->total_counts) < runtime_tuning[id].target_tolerance_counts &&
+         Absolute((float)motor->speed_rpm) < runtime_tuning[id].target_speed_tolerance_rpm;
 }
 
-bool Mechanism_IsLiftAtTarget(void) { return IsAtTarget(&lift); }
-bool Mechanism_IsRotatorAtTarget(void) { return IsAtTarget(&rotator); }
-bool Mechanism_IsLoaderAtTarget(void) { return IsAtTarget(&loader_a) && IsAtTarget(&loader_b); }
+bool Mechanism_IsLiftAtTarget(void) { return IsAtTarget(TUNING_MOTOR_LIFT); }
+bool Mechanism_IsRotatorAtTarget(void) { return IsAtTarget(TUNING_MOTOR_ROTATOR); }
+bool Mechanism_IsLoaderAtTarget(void) { return IsAtTarget(TUNING_MOTOR_LOADER_A) && IsAtTarget(TUNING_MOTOR_LOADER_B); }
+
+bool Mechanism_SetPid(TuningMotorId id, MechanismPidLoop loop,
+                      float kp, float ki, float kd,
+                      float integral_limit, float output_limit)
+{
+  Motor *motor = MotorFor(id);
+  PidController *pid;
+  if (mode != MECHANISM_MODE_DISARMED || motor == 0 || integral_limit < 0.0f || output_limit <= 0.0f) return false;
+  pid = loop == MECHANISM_PID_POSITION ? &motor->config.position_pid : &motor->config.velocity_pid;
+  pid->kp = kp;
+  pid->ki = ki;
+  pid->kd = kd;
+  pid->integral_limit = integral_limit;
+  pid->output_limit = output_limit;
+  Pid_Reset(pid);
+  return true;
+}
+
+bool Mechanism_SetCurrentLimit(TuningMotorId id, float current_limit)
+{
+  Motor *motor = MotorFor(id);
+  if (mode != MECHANISM_MODE_DISARMED || motor == 0 || current_limit <= 0.0f) return false;
+  motor->config.current_limit = current_limit;
+  return true;
+}
+
+bool Mechanism_SetFeedforward(TuningMotorId id, float current)
+{
+  if (mode != MECHANISM_MODE_DISARMED || id >= TUNING_MOTOR_COUNT) return false;
+  runtime_tuning[id].feedforward_current = current;
+  return true;
+}
+
+bool Mechanism_SetTargetTolerance(TuningMotorId id, float counts, float speed_rpm)
+{
+  if (mode != MECHANISM_MODE_DISARMED || id >= TUNING_MOTOR_COUNT || counts <= 0.0f || speed_rpm < 0.0f) return false;
+  runtime_tuning[id].target_tolerance_counts = counts;
+  runtime_tuning[id].target_speed_tolerance_rpm = speed_rpm;
+  return true;
+}
+
+bool Mechanism_RestoreDefaultTuning(void)
+{
+  if (mode != MECHANISM_MODE_DISARMED) return false;
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) LoadDefaultProfile(id);
+  return true;
+}
+
+bool Mechanism_GetMotorTelemetry(TuningMotorId id, MechanismMotorTelemetry *telemetry)
+{
+  const Motor *motor = MotorFor(id);
+  if (motor == 0 || telemetry == 0) return false;
+  telemetry->feedback_id = motor->config.feedback_id;
+  telemetry->total_counts = motor->total_counts;
+  telemetry->speed_rpm = motor->speed_rpm;
+  telemetry->measured_current = motor->measured_current;
+  telemetry->target_counts = motor->target_counts;
+  telemetry->feedforward_current = runtime_tuning[id].feedforward_current;
+  telemetry->current_limit = motor->config.current_limit;
+  telemetry->last_feedback_ms = motor->last_feedback_ms;
+  telemetry->has_feedback = motor->has_feedback;
+  return true;
+}
