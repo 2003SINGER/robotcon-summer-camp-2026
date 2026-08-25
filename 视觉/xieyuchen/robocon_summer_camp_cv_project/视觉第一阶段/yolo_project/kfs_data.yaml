@@ -1,0 +1,6 @@
+path: /home/xyc/Desktop/yolo_project/dataset  # 改成你自己的绝对路径
+train: images/train
+val: images/val
+
+nc: 2                      # 只有2类
+names: ['red', 'blue']     # 顺序必须和标注时一致

@@ -25,3 +25,11 @@ desktop.ini
 *.o
 *.uvguix.*
 *.uvoptx
+
+# STM32CubeIDE / Keil 构建目录；工程配置和源文件保留。
+**/Debug/
+**/Release/
+**/build/
+**/CMakeFiles/
+CMakeCache.txt
+*.elf
