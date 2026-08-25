@@ -41,16 +41,13 @@ CAN1 统一为 PA11 (RX) / PA12 (TX)、经典 CAN 1 Mbps。Xuke 的 `.ioc` 曾�
 
 确认四个 ID 后将该宏改为 `0` 后重新刷写；此时硬件过滤器只接收已登记的四台电机反馈。
 
-## 构建
+## 构建与烧录
 
-在 CLion 打开本目录，选择 `CMakePresets.json` 中的 `stm32-clt`；或者运行：
+推荐直接用 VS Code 打开本目录，按 `Ctrl+Shift+B` 并选择 **Build STM32 firmware**。它调用 [tools/build.ps1](tools/build.ps1)，直接使用已安装的 STM32CubeCLT GCC，不依赖 CMake 首次配置缓存。
 
-```powershell
-cmake --preset stm32-clt
-cmake --build --preset stm32-clt
-```
+产物位于 `build/`：`mechanism_controller.elf/.hex/.bin`。打开 STM32CubeProgrammer，连接 ST-Link，选择 `mechanism_controller.bin`，下载地址填 `0x08000000` 后烧录。该目录不纳入 Git。
 
-产物位于 `build/`：`mechanism_controller.elf/.hex/.bin`。该目录不纳入 Git。
+`CMakePresets.json` 仍保留给 CLion，但本机 CubeCLT 的 CMake 首次裸机探测会异常退出；当前上板与日常开发以 VS Code 任务为准。
 
 ## 调参
 
