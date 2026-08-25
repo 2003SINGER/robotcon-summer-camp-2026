@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug STM32H723 via ST-Link",
+      "type": "cortex-debug",
+      "request": "launch",
+      "servertype": "stlink",
+      "serverpath": "E:\\STM32CubeCLT_1.21.0\\STLink-gdb-server\\bin\\ST-LINK_gdbserver.exe",
+      "device": "STM32H723ZG",
+      "interface": "swd",
+      "executable": "${workspaceFolder}/build/mechanism_controller.elf",
+      "armToolchainPath": "E:\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "Build STM32 firmware"
+    }
+  ]
+}

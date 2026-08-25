@@ -49,6 +49,8 @@ CAN1 统一为 PA11 (RX) / PA12 (TX)、经典 CAN 1 Mbps。Xuke 的 `.ioc` 曾�
 
 `CMakePresets.json` 仍保留给 CLion，但本机 CubeCLT 的 CMake 首次裸机探测会异常退出；当前上板与日常开发以 VS Code 任务为准。
 
+用于调试时，安装 VS Code 的 **Cortex-Debug** 扩展，连接 ST-Link 的 SWDIO、SWCLK、GND、3.3V 后按 `F5` 选择 **Debug STM32H723 via ST-Link**。不需要 USB：先运行几秒再暂停，在 Watch 中加入 `g_can_bus_diagnostics` 查看原始 CAN 帧和 ID，加入 `g_mechanism_telemetry` 查看四台电机已解码的总编码器、转速、电流、目标与 PID 状态。USB/串口只在后续需要 VOFA 不停机连续画波形时再接。
+
 ## 调参
 
 日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：

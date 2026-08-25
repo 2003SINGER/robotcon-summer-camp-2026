@@ -10,6 +10,7 @@ static Motor lift;
 static Motor rotator;
 static volatile MechanismMode mode = MECHANISM_MODE_DISARMED;
 static volatile MechanismFault fault = MECHANISM_FAULT_NONE;
+volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
 
 typedef struct {
   float feedforward_current;
@@ -62,6 +63,9 @@ void Mechanism_Init(void)
   LoadDefaultProfile(TUNING_MOTOR_ROTATOR);
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    (void)Mechanism_GetMotorTelemetry(id, (MechanismMotorTelemetry *)&g_mechanism_telemetry[id]);
+  }
 }
 
 void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms)
@@ -122,6 +126,9 @@ void Mechanism_Service(uint32_t now_ms)
   }
   if (mode == MECHANISM_MODE_READY && CanBus_GetTxDropCount() >= CAN_TX_DROP_FAULT_THRESHOLD) {
     Mechanism_EStop(MECHANISM_FAULT_HAL);
+  }
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    (void)Mechanism_GetMotorTelemetry(id, (MechanismMotorTelemetry *)&g_mechanism_telemetry[id]);
   }
 }
 

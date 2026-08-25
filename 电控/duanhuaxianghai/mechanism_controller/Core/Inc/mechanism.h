@@ -42,6 +42,10 @@ typedef struct {
   bool has_feedback;
 } MechanismMotorTelemetry;
 
+/* Read-only snapshot for the SWD debugger. Updated by SafetyTask at 10 ms;
+ * control ownership remains inside mechanism.c. */
+extern volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
+
 void Mechanism_Init(void);
 void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms);
 void Mechanism_ControlTick(uint32_t now_ms);
