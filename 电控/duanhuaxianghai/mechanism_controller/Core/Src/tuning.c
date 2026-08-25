@@ -37,7 +37,8 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
   },
   [TUNING_MOTOR_LIFT] = {
     "lift",
-    /* 0x203 is provisional: inspect the assembled CAN bus before motion. */
+    /* Shared-CAN allocation: C610 ID 3 (feedback 0x203). Set the physical
+     * Z-axis C610 to ID 3 with its Set button before arming this firmware. */
     {MOTOR_KIND_M2006, 0x203U, 1, 1, M2006_CURRENT_LIMIT,
      POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
      M2006_TRAJECTORY_VELOCITY, M2006_TRAJECTORY_ACCELERATION},
