@@ -79,6 +79,7 @@ CMakeCache.txt
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_def.h
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/
+电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/*
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_cortex.h
 !电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma.h
