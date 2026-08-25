@@ -5,6 +5,9 @@
 #include "tuning.h"
 
 static volatile uint32_t tx_drop_count = 0U;
+/* Deliberately global for a first bench session: CLion/ST-Link can watch this
+ * symbol without adding a UART protocol before CAN IDs are known. */
+volatile CanBusDiagnostics g_can_bus_diagnostics;
 
 static void AddExactFilter(uint32_t index, uint16_t identifier)
 {
@@ -18,10 +21,28 @@ static void AddExactFilter(uint32_t index, uint16_t identifier)
   if (HAL_FDCAN_ConfigFilter(&hfdcan1, &filter) != HAL_OK) Error_Handler();
 }
 
+static void AddAcceptAllStandardFilter(uint32_t index)
+{
+  FDCAN_FilterTypeDef filter = {0};
+  filter.IdType = FDCAN_STANDARD_ID;
+  filter.FilterIndex = index;
+  filter.FilterType = FDCAN_FILTER_RANGE;
+  filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+  filter.FilterID1 = 0U;
+  filter.FilterID2 = 0x7FFU;
+  if (HAL_FDCAN_ConfigFilter(&hfdcan1, &filter) != HAL_OK) Error_Handler();
+}
+
 void CanBus_Init(void)
 {
+  g_can_bus_diagnostics = (CanBusDiagnostics){0};
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     AddExactFilter((uint32_t)id, Tuning_GetMotorProfile(id)->motor.feedback_id);
+  }
+  if (CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS != 0U) AddAcceptAllStandardFilter(TUNING_MOTOR_COUNT);
+  if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT,
+                                   FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) != HAL_OK) {
+    Error_Handler();
   }
   if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK ||
       HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0U) != HAL_OK) {
@@ -66,6 +87,14 @@ void CanBus_SendGM6020Current(int16_t rotator)
 
 uint32_t CanBus_GetTxDropCount(void) { return tx_drop_count; }
 
+bool CanBus_GetDiagnostics(CanBusDiagnostics *destination)
+{
+  if (destination == NULL) return false;
+  *destination = g_can_bus_diagnostics;
+  destination->tx_drop_count = tx_drop_count;
+  return true;
+}
+
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t notifications)
 {
   FDCAN_RxHeaderTypeDef header;
@@ -73,6 +102,18 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t notificatio
   if (hfdcan->Instance != FDCAN1 || (notifications & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0U) return;
   while (HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0) > 0U) {
     if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &header, data) == HAL_OK) {
+      bool known = false;
+      ++g_can_bus_diagnostics.rx_frame_count;
+      g_can_bus_diagnostics.last_identifier = (uint16_t)header.Identifier;
+      for (uint32_t index = 0U; index < sizeof(data); ++index) g_can_bus_diagnostics.last_data[index] = data[index];
+      g_can_bus_diagnostics.last_rx_ms = HAL_GetTick();
+      for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+        if ((uint16_t)header.Identifier == Tuning_GetMotorProfile(id)->motor.feedback_id) {
+          known = true;
+          break;
+        }
+      }
+      if (!known) ++g_can_bus_diagnostics.rx_unknown_id_count;
       Mechanism_OnCanFeedback((uint16_t)header.Identifier, data, HAL_GetTick());
     }
   }

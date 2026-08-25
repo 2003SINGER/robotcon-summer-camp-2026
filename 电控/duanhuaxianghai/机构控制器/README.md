@@ -5,16 +5,22 @@
 ## 运行结构
 
 ```text
-FDCAN1 ISR（只更新反馈快照）
+FDCAN1 ISR（只收反馈快照/总线诊断，不碰机构状态）
         ↓
-MotorControlTask，1 ms：四个闭环 → CAN 电流帧
-MechanismTask，10 ms：反馈超时与故障处理
-RobotFsmTask，20 ms：非阻塞动作序列
+命令邮箱（未来 CAN2/串口只投递意图，长度 1、最新命令覆盖旧命令）
+        ↓
+RobotFsmTask，20 ms：唯一的动作状态迁移与机构目标下发
+        ↓
+ActuatorControlTask，1 ms：四个闭环 → CAN1 电流帧
+        ↑
+SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 ```
+
+四电机不各自开任务；伸缩双电机、Z 轴和翻转由同一个 1 ms 控制任务计算并在同一周期打包发出，因此不会因任务调度把两段伸缩拆散。FreeRTOS 任务与队列均改为**静态分配**，没有运行期堆分配；栈溢出直接进入机构故障。
 
 参数不再散落在控制逻辑中：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差、伸缩行程以及最大速度/加速度都集中在 `Core/Src/tuning.c`。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈，后续改一套机构参数不会波及流程和总线代码。
 
-上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩。上层通信接入后，必须在四台电机均已收到新反馈的条件下调用 `Mechanism_Arm()`，之后才可发机构命令。反馈超过 20 ms 未更新会切到故障并持续发送零电流。
+上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩，也不会主动在 CAN1 发送电流帧。上层通信接入后，必须通过命令邮箱请求 `ARM`，并且四台电机均已收到新反馈，才会进入 `READY`。反馈超过 20 ms 未更新、或 CAN 发送连续异常会切到故障并发送零电流。
 
 ## 已确认的映射
 
@@ -25,6 +31,15 @@ RobotFsmTask，20 ms：非阻塞动作序列
 | 翻转 | GM6020 | `0x206` | 发送组 `0x1FF` 的第二槽位。 |
 
 CAN1 统一为 PA11 (RX) / PA12 (TX)、经典 CAN 1 Mbps。Xuke 的 `.ioc` 曾写 PB8/PB9，但其实际 `fdcan.c` 也是 PA11/PA12；本工程以实际代码与 GM 工程一致的 PA11/PA12 为准。
+
+首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
+
+- `g_can_bus_diagnostics.rx_frame_count`：是否真的收到总线帧；
+- `g_can_bus_diagnostics.last_identifier` / `last_data`：最后一帧 ID 和 8 字节原始反馈；
+- `g_can_bus_diagnostics.rx_unknown_id_count`：不在当前 `tuning.c` 表里的 ID 数；
+- `g_app_runtime_diagnostics.control_deadline_miss_count` 和三个 `*_stack_min_words`：控制任务是否漏周期、余栈是否够。
+
+确认四个 ID 后将该宏改为 `0` 后重新刷写；此时硬件过滤器只接收已登记的四台电机反馈。
 
 ## 构建
 
@@ -49,6 +64,8 @@ cmake --build --preset stm32-clt
 PID 使用“测量值微分 + 一阶低通滤波”，避免设定值突变给 D 项造成电流尖峰；其积分冻结判断使用加入重力前馈后的最终电流限幅，避免 Z 轴等带前馈机构在饱和时继续积累积分。PID 的 P/I/D、未限幅输出、最终输出和饱和标志会随遥测一起给出。
 
 为接入串口或板间 CAN 调试器，`mechanism.h` 已提供运行时 API：`Mechanism_SetPid`、`Mechanism_SetDerivativeFilter`、`Mechanism_SetCurrentLimit`、`Mechanism_SetFeedforward`、`Mechanism_SetTargetTolerance`、`Mechanism_SetMotionLimits`、`Mechanism_GetMotorTelemetry` 与 `Mechanism_RestoreDefaultTuning`。所有写参数操作只在 `DISARMED` 状态接受；它们是 RAM 临时值，断电或恢复默认后回到 `tuning.c` 的值。当前没有占用串口，也没有凭空定义板间 CAN 协议。
+
+将来接底盘板时，通信层只调用 `CommandMailbox_Submit()`，投递 `ARM`、急停、开始取料、吸附确认和流程复位等事件；不允许从 CAN 回调直接调用 `Mechanism_Move...`。这样即使底盘板、气路板或视觉状态帧临时异常，也不会在中断里打断正在执行的机构序列。
 
 上机顺序：确认 ID/方向 → 先用很低限流验证编码器方向 → 调速度环 P/I → 再调位置环 P → 最后测重力前馈、速度/加速度约束和到位容差。默认 `kd=0`；有明确的高频抖动或制动不足证据后，才逐步启用 D 和滤波时间常数。
 

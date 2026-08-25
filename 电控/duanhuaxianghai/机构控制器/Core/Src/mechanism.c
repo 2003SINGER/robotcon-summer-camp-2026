@@ -107,14 +107,21 @@ void Mechanism_ControlTick(uint32_t now_ms)
     lift_current = Motor_ControlStep(&lift, now_ms, CONTROL_PERIOD_S);
     rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
   }
-  CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
-  CanBus_SendGM6020Current(rotator_current);
+  /* Do not place even zero-current frames on an unverified bench bus. Once
+   * armed, a fault still transmits zero current so the motors stop promptly. */
+  if (mode != MECHANISM_MODE_DISARMED) {
+    CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
+    CanBus_SendGM6020Current(rotator_current);
+  }
 }
 
 void Mechanism_Service(uint32_t now_ms)
 {
   if (mode == MECHANISM_MODE_READY && !IsFresh(now_ms)) {
     Mechanism_EStop(MECHANISM_FAULT_FEEDBACK_TIMEOUT);
+  }
+  if (mode == MECHANISM_MODE_READY && CanBus_GetTxDropCount() >= CAN_TX_DROP_FAULT_THRESHOLD) {
+    Mechanism_EStop(MECHANISM_FAULT_HAL);
   }
 }
 

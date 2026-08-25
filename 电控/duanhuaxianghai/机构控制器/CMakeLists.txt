@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}.elf
   Core/Src/stm32h7xx_hal_msp.c
   Core/Src/system_stm32h7xx.c
   Core/Src/app_tasks.c
+  Core/Src/command_mailbox.c
   Core/Src/can_bus.c
   Core/Src/mechanism.c
   Core/Src/motor.c
@@ -22,7 +23,6 @@ add_executable(${PROJECT_NAME}.elf
   Middlewares/FreeRTOS/Source/queue.c
   Middlewares/FreeRTOS/Source/list.c
   Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
-  Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c

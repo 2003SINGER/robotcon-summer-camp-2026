@@ -1,4 +1,5 @@
 #include "robot_fsm.h"
+#include "command_mailbox.h"
 #include "mechanism.h"
 
 static RobotFsmState state;
@@ -23,7 +24,30 @@ void RobotFsm_SetExternalGripConfirmed(bool confirmed) { grip_confirmed = confir
 
 void RobotFsm_Tick(uint32_t now_ms)
 {
-  (void)now_ms;
+  RobotCommand command;
+  /* Mailbox is deliberately consumed by this task, not by the CAN callback.
+   * This prevents a communication frame from interrupting a motion sequence. */
+  while (CommandMailbox_Take(&command)) {
+    switch (command.type) {
+      case ROBOT_COMMAND_ARM:
+        (void)Mechanism_Arm(now_ms);
+        break;
+      case ROBOT_COMMAND_ESTOP:
+        Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
+        break;
+      case ROBOT_COMMAND_START_RETRIEVE:
+        (void)RobotFsm_StartRetrieve();
+        break;
+      case ROBOT_COMMAND_SET_GRIP_CONFIRMED:
+        RobotFsm_SetExternalGripConfirmed(command.value);
+        break;
+      case ROBOT_COMMAND_RESET_SEQUENCE:
+        if (state == ROBOT_FSM_COMPLETE) state = ROBOT_FSM_IDLE;
+        break;
+      default:
+        break;
+    }
+  }
   if (Mechanism_GetMode() == MECHANISM_MODE_FAULT) {
     state = ROBOT_FSM_FAULT;
     return;
