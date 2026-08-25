@@ -33,3 +33,65 @@ desktop.ini
 **/CMakeFiles/
 CMakeCache.txt
 *.elf
+
+# The mechanism controller keeps only the H723 headers under CMSIS.  These
+# Cube firmware examples/test suites are local SDK material, not project code.
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Core/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Core_A/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/docs/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/DSP/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/NN/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/RTOS/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/RTOS2/
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Device/ST/STM32H7xx/Source/
+
+# Keep this controller self-contained without committing unrelated HAL drivers.
+电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/*
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_fdcan.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
+
+# Only the headers needed by this FDCAN-only H723 project are versioned. The
+# copied full SDK stays local so CubeMX can still inspect it if needed.
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/*
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/cmsis_compiler.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/cmsis_gcc.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/cmsis_version.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/core_cm7.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Include/mpu_armv7.h
+电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Device/ST/STM32H7xx/Include/*
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h723xx.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h7xx.h
+!电控/duanhuaxianghai/机构控制器/Drivers/CMSIS/Device/ST/STM32H7xx/Include/system_stm32h7xx.h
+电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/*
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_def.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_cortex.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_dma_ex.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_exti.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_fdcan.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_flash.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_flash_ex.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_gpio.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_gpio_ex.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hsem.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_mdma.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pwr_ex.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc.h
+!电控/duanhuaxianghai/机构控制器/Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_rcc_ex.h
