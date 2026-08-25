@@ -5,13 +5,13 @@
 ## 运行结构
 
 ```text
-FDCAN1 / FDCAN2 ISR（只收反馈快照/总线诊断，不碰机构状态）
+FDCAN1 ISR（只收反馈快照/总线诊断，不碰机构状态）
         ↓
-命令邮箱（未来底盘板/气动板/串口只投递意图，长度 1、最新命令覆盖旧命令）
+命令邮箱（未来 CAN2/串口只投递意图，长度 1、最新命令覆盖旧命令）
         ↓
 RobotFsmTask，20 ms：唯一的动作状态迁移与机构目标下发
         ↓
-ActuatorControlTask，1 ms：四个闭环 → CAN1 / CAN2 电流帧
+ActuatorControlTask，1 ms：四个闭环 → CAN1 电流帧
         ↑
 SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 ```
@@ -20,22 +20,22 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 
 参数不再散落在控制逻辑中：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差、伸缩行程以及最大速度/加速度都集中在 `Core/Src/tuning.c`。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈，后续改一套机构参数不会波及流程和总线代码。
 
-上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩，也不会主动发送电流帧。上层通信接入后，必须通过命令邮箱请求 `ARM`，并且四台电机均已收到新反馈，才会进入 `READY`。反馈超过 20 ms 未更新、或 CAN 发送连续异常会切到故障并发送零电流。
+上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩，也不会主动在 CAN1 发送电流帧。上层通信接入后，必须通过命令邮箱请求 `ARM`，并且四台电机均已收到新反馈，才会进入 `READY`。反馈超过 20 ms 未更新、或 CAN 发送连续异常会切到故障并发送零电流。
 
 ## 已确认的映射
 
 | 执行器 | 电机 | CAN 反馈 ID | 说明 |
 | --- | --- | --- | --- |
-| 前部伸缩 | M2006 A/B | CAN1：`0x201` / `0x202` | 原工程的伸出目标分别为 38 / 35 圈，保留为独立原始目标。 |
-| Z 轴 | M2006 | CAN2：`0x201` | 来自当前单 Z 轴工程；空载前馈暂设 `755`，并导入了 5 个相对行程参考点。 |
-| 翻转 | GM6020 | CAN2：`0x206` | 发送组 `0x1FF` 的第二槽位。 |
+| 前部伸缩 | M2006 A/B | `0x201` / `0x202` | 原工程的伸出目标分别为 38 / 35 圈，保留为独立原始目标。 |
+| Z 轴 | M2006 | `0x203` 暂定 | 必须上电监听后确认。已预留重力前馈。 |
+| 翻转 | GM6020 | `0x206` | 发送组 `0x1FF` 的第二槽位。 |
 
-CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。CAN2 同步为 PB5 (RX) / PB6 (TX)、1 Mbps，专供 Z 轴与翻转。这样两条总线可各自使用 `0x201`，不会冲突；底盘板不占用这两条机构电机总线。
+CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。
 
-首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，两条机构电机总线都会接收全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
+首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
 - `g_can_bus_diagnostics.rx_frame_count`：是否真的收到总线帧；
-- `g_can_bus_diagnostics.last_bus` / `last_identifier` / `last_data`：最后一帧来自哪条总线、ID 和 8 字节原始反馈；
+- `g_can_bus_diagnostics.last_identifier` / `last_data`：最后一帧 ID 和 8 字节原始反馈；
 - `g_can_bus_diagnostics.rx_unknown_id_count`：不在当前 `tuning.c` 表里的 ID 数；
 - `g_app_runtime_diagnostics.control_deadline_miss_count` 和三个 `*_stack_min_words`：控制任务是否漏周期、余栈是否够。
 
@@ -56,7 +56,7 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：
 
 - `motor_profiles`：CAN ID、反馈/输出方向、限流、位置/速度 PID、重力前馈和到位容差；
-- `motion_profile`：两台伸缩电机各自的伸出目标、Z 轴相对参考点、翻转的编码器换算；
+- `motion_profile`：两台伸缩电机各自的伸出目标、翻转的编码器换算；
 - `trajectory_max_velocity_counts_s` / `trajectory_max_acceleration_counts_s2`：位置目标的速度/加速度约束。目标不会一步跳到远端，而是以受限轨迹进入位置环。
 - CAN ID 和正反向属于启动时总线过滤配置，必须改源码、重新刷写，不能运行时改。
 
@@ -70,7 +70,8 @@ PID 使用“测量值微分 + 一阶低通滤波”，避免设定值突变给 
 
 ## 上板前必须确认
 
-1. 两条总线是否确实分别接到 PA11/PA12 与 PB5/PB6 的收发器，以及四台电机正方向；
+1. Z 轴 M2006 的实际 CAN ID，以及四台电机正方向；
+2. PA11/PA12 是否确实接到该板的 CAN 收发器；
 3. 机构在上电/归零时的机械位置。当前伸缩“收回”为两个相对编码器零点，不能替代限位开关归零；
 4. Z 轴重力补偿电流、GM6020 是否需要角度相关补偿，以及所有 PID 参数；
 5. 与气路/底盘板的命令和状态帧。`RobotFsm` 已保留“吸附确认”事件，但尚未虚构板间协议。

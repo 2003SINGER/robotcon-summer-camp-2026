@@ -26,7 +26,6 @@ int main(void)
 
   MX_GPIO_Init();
   MX_FDCAN1_Init();
-  MX_FDCAN2_Init();
   Mechanism_Init();
   CanBus_Init();
 

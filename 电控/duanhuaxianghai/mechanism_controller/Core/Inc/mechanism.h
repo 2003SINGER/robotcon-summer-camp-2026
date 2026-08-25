@@ -24,17 +24,6 @@ typedef enum {
   MECHANISM_PID_VELOCITY
 } MechanismPidLoop;
 
-/* Named Z-axis waypoints imported from the current bench sequence.  They are
- * relative encoder references and remain subject to end-stop validation. */
-typedef enum {
-  LIFT_REFERENCE_HOME = 0,
-  LIFT_REFERENCE_1,
-  LIFT_REFERENCE_2,
-  LIFT_REFERENCE_3,
-  LIFT_REFERENCE_4,
-  LIFT_REFERENCE_5
-} LiftReference;
-
 typedef struct {
   uint16_t feedback_id;
   int32_t total_counts;
@@ -58,7 +47,7 @@ typedef struct {
 extern volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
 
 void Mechanism_Init(void);
-void Mechanism_OnCanFeedback(MotorCan bus, uint16_t identifier, const uint8_t data[8], uint32_t now_ms);
+void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms);
 void Mechanism_ControlTick(uint32_t now_ms);
 void Mechanism_Service(uint32_t now_ms);
 bool Mechanism_Arm(uint32_t now_ms);
@@ -67,7 +56,6 @@ MechanismMode Mechanism_GetMode(void);
 MechanismFault Mechanism_GetFault(void);
 
 bool Mechanism_MoveLiftTo(float counts);
-bool Mechanism_MoveLiftToReference(LiftReference reference);
 bool Mechanism_TurnRotatorBy(float motor_degrees);
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
 bool Mechanism_MoveLoaderOut(void);

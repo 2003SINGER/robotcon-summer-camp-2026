@@ -10,14 +10,8 @@ typedef enum {
   MOTOR_KIND_GM6020
 } MotorKind;
 
-typedef enum {
-  MOTOR_CAN1 = 0,
-  MOTOR_CAN2
-} MotorCan;
-
 typedef struct {
   MotorKind kind;
-  MotorCan can;
   uint16_t feedback_id;
   int8_t feedback_sign;
   int8_t current_sign;

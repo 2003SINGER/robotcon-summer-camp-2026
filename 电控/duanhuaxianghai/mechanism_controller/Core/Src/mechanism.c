@@ -68,11 +68,11 @@ void Mechanism_Init(void)
   }
 }
 
-void Mechanism_OnCanFeedback(MotorCan bus, uint16_t identifier, const uint8_t data[8], uint32_t now_ms)
+void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms)
 {
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     Motor *motor = MotorFor(id);
-    if (motor != 0 && bus == motor->config.can && identifier == motor->config.feedback_id) {
+    if (motor != 0 && identifier == motor->config.feedback_id) {
       Motor_OnFeedback(motor, data, now_ms);
       return;
     }
@@ -114,9 +114,8 @@ void Mechanism_ControlTick(uint32_t now_ms)
   /* Do not place even zero-current frames on an unverified bench bus. Once
    * armed, a fault still transmits zero current so the motors stop promptly. */
   if (mode != MECHANISM_MODE_DISARMED) {
-    CanBus_SendM2006Currents(MOTOR_CAN1, loader_a_current, loader_b_current, 0);
-    CanBus_SendM2006Currents(MOTOR_CAN2, lift_current, 0, 0);
-    CanBus_SendGM6020Current(MOTOR_CAN2, rotator_current);
+    CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
+    CanBus_SendGM6020Current(rotator_current);
   }
 }
 
@@ -142,21 +141,6 @@ bool Mechanism_MoveLiftTo(float counts)
   if (mode != MECHANISM_MODE_READY) return false;
   Motor_SetTargetCounts(&lift, counts);
   return true;
-}
-
-bool Mechanism_MoveLiftToReference(LiftReference reference)
-{
-  const MotionProfile *motion = Tuning_GetMotionProfile();
-  const float references[] = {
-    0.0f,
-    motion->lift_level1_counts,
-    motion->lift_level2_counts,
-    motion->lift_level3_counts,
-    motion->lift_level4_counts,
-    motion->lift_level5_counts
-  };
-  if (reference >= (sizeof(references) / sizeof(references[0]))) return false;
-  return Mechanism_MoveLiftTo(references[reference]);
 }
 
 bool Mechanism_TurnRotatorBy(float motor_degrees)

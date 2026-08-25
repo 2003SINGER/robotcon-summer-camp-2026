@@ -24,13 +24,6 @@ typedef struct {
 typedef struct {
   float loader_a_out_counts;
   float loader_b_out_counts;
-  /* Derived from the current single-Z-axis bench project.  These are motor
-   * encoder counts relative to the post-arm position, not millimetres. */
-  float lift_level1_counts;
-  float lift_level2_counts;
-  float lift_level3_counts;
-  float lift_level4_counts;
-  float lift_level5_counts;
   float rotator_counts_per_degree;
 } MotionProfile;
 
