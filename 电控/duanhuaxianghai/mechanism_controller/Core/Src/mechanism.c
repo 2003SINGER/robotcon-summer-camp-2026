@@ -28,7 +28,6 @@ typedef struct {
 } MotionWatch;
 
 static MotionWatch motion_watch[TUNING_MOTOR_COUNT];
-static bool lift_homed;
 
 static bool IsAtTarget(TuningMotorId id);
 
@@ -99,7 +98,6 @@ void Mechanism_Init(void)
   LoadDefaultProfile(TUNING_MOTOR_ROTATOR);
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
-  lift_homed = false;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
@@ -142,7 +140,6 @@ bool Mechanism_ClearFault(void)
   if (mode != MECHANISM_MODE_FAULT) return false;
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
-  lift_homed = false;
   return true;
 }
 
@@ -213,22 +210,8 @@ MechanismFault Mechanism_GetFault(void) { return fault; }
 bool Mechanism_MoveLiftTo(float counts)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  if (!lift_homed) {
-    Mechanism_EStop(MECHANISM_FAULT_LIFT_NOT_HOMED);
-    return false;
-  }
   return SetTarget(TUNING_MOTOR_LIFT, &lift, counts);
 }
-
-void Mechanism_OnLiftHomeLimit(bool asserted)
-{
-  if (!asserted) return;
-  Motor_SetPositionOrigin(&lift);
-  lift_homed = true;
-  motion_watch[TUNING_MOTOR_LIFT] = (MotionWatch){0};
-}
-
-bool Mechanism_IsLiftHomed(void) { return lift_homed; }
 
 bool Mechanism_TurnRotatorTo(float motor_degrees)
 {

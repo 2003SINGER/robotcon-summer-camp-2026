@@ -19,8 +19,7 @@ typedef enum {
   MECHANISM_FAULT_EXTERNAL_ESTOP,
   MECHANISM_FAULT_SOFT_LIMIT,
   MECHANISM_FAULT_MOTION_TIMEOUT,
-  MECHANISM_FAULT_STALL,
-  MECHANISM_FAULT_LIFT_NOT_HOMED
+  MECHANISM_FAULT_STALL
 } MechanismFault;
 
 typedef enum {
@@ -61,9 +60,6 @@ MechanismMode Mechanism_GetMode(void);
 MechanismFault Mechanism_GetFault(void);
 
 bool Mechanism_MoveLiftTo(float counts);
-/* Call this from the future debounced lower-limit GPIO reader. */
-void Mechanism_OnLiftHomeLimit(bool asserted);
-bool Mechanism_IsLiftHomed(void);
 bool Mechanism_TurnRotatorTo(float motor_degrees);
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
 bool Mechanism_IsLiftAtTarget(void);
