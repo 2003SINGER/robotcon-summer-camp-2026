@@ -8,6 +8,7 @@ add_executable(${PROJECT_NAME}.elf
   Core/Src/main.c
   Core/Src/gpio.c
   Core/Src/fdcan.c
+  Core/Src/usart.c
   Core/Src/stm32h7xx_it.c
   Core/Src/stm32h7xx_hal_msp.c
   Core/Src/system_stm32h7xx.c
@@ -38,6 +39,8 @@ add_executable(${PROJECT_NAME}.elf
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
   Core/Startup/startup_stm32h723xx.s
 )
 

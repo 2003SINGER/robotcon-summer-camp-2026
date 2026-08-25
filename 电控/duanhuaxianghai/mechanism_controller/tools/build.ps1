@@ -18,7 +18,7 @@ foreach ($tool in @($gcc, $objcopy, $size)) {
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 
 $sources = @(
-  'Core/Src/main.c', 'Core/Src/gpio.c', 'Core/Src/fdcan.c',
+  'Core/Src/main.c', 'Core/Src/gpio.c', 'Core/Src/fdcan.c', 'Core/Src/usart.c',
   'Core/Src/stm32h7xx_it.c', 'Core/Src/stm32h7xx_hal_msp.c',
   'Core/Src/system_stm32h7xx.c', 'Core/Src/app_tasks.c',
   'Core/Src/command_mailbox.c', 'Core/Src/can_bus.c', 'Core/Src/mechanism.c',
@@ -41,6 +41,8 @@ $sources = @(
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c',
+  'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c',
+  'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c',
   'Core/Startup/startup_stm32h723xx.s'
 ) | ForEach-Object { Join-Path $projectRoot $_ }
 

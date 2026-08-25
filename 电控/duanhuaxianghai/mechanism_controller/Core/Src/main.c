@@ -8,6 +8,7 @@
 #include "main.h"
 #include "fdcan.h"
 #include "gpio.h"
+#include "usart.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -26,6 +27,7 @@ int main(void)
 
   MX_GPIO_Init();
   MX_FDCAN1_Init();
+  MX_USART3_UART_Init();
   Mechanism_Init();
   CanBus_Init();
 

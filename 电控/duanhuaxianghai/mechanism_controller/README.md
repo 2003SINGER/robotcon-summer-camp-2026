@@ -30,7 +30,7 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 | Z 轴 | M2006 | `0x203` | 单 CAN 地址规划为 C610 ID 3；须先在物理电调上设定。已预留重力前馈。 |
 | 翻转 | GM6020 | `0x206` | 发送组 `0x1FF` 的第二槽位。 |
 
-CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。
+CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。系统时钟为 25 MHz HSE → 500 MHz Cortex、250 MHz HCLK、125 MHz FDCAN。
 
 首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
@@ -63,7 +63,7 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 PID 使用“测量值微分 + 一阶低通滤波”，避免设定值突变给 D 项造成电流尖峰；其积分冻结判断使用加入重力前馈后的最终电流限幅，避免 Z 轴等带前馈机构在饱和时继续积累积分。PID 的 P/I/D、未限幅输出、最终输出和饱和标志会随遥测一起给出。
 
-为接入串口或板间 CAN 调试器，`mechanism.h` 已提供运行时 API：`Mechanism_SetPid`、`Mechanism_SetDerivativeFilter`、`Mechanism_SetCurrentLimit`、`Mechanism_SetFeedforward`、`Mechanism_SetTargetTolerance`、`Mechanism_SetMotionLimits`、`Mechanism_GetMotorTelemetry` 与 `Mechanism_RestoreDefaultTuning`。所有写参数操作只在 `DISARMED` 状态接受；它们是 RAM 临时值，断电或恢复默认后回到 `tuning.c` 的值。当前没有占用串口，也没有凭空定义板间 CAN 协议。
+为接入串口或板间 CAN 调试器，`mechanism.h` 已提供运行时 API：`Mechanism_SetPid`、`Mechanism_SetDerivativeFilter`、`Mechanism_SetCurrentLimit`、`Mechanism_SetFeedforward`、`Mechanism_SetTargetTolerance`、`Mechanism_SetMotionLimits`、`Mechanism_GetMotorTelemetry` 与 `Mechanism_RestoreDefaultTuning`。所有写参数操作只在 `DISARMED` 状态接受；它们是 RAM 临时值，断电或恢复默认后回到 `tuning.c` 的值。USART3 已初始化在 PB10/PB11，但目前不占用它，也没有凭空定义板间 CAN 协议。
 
 将来接底盘板时，通信层只调用 `CommandMailbox_Submit()`，投递 `ARM`、急停、开始取料、吸附确认和流程复位等事件；不允许从 CAN 回调直接调用 `Mechanism_Move...`。这样即使底盘板、气路板或视觉状态帧临时异常，也不会在中断里打断正在执行的机构序列。
 
