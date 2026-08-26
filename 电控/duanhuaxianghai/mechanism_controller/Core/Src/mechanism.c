@@ -1,6 +1,7 @@
 #include "mechanism.h"
 #include "main.h"
 #include "board_config.h"
+#include "robot_fsm.h"
 #include "can_bus.h"
 #include "motor.h"
 #include "tuning.h"
@@ -11,6 +12,9 @@ static Motor lift;
 static Motor rotator;
 static volatile MechanismMode mode = MECHANISM_MODE_DISARMED;
 static volatile MechanismFault fault = MECHANISM_FAULT_NONE;
+/* A flip axis has no safe arbitrary hold angle at ARM.  It is enabled only
+ * after a deliberate angle command, then remains position-controlled. */
+static bool rotator_target_active;
 volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
 volatile uint32_t g_mechanism_mode = MECHANISM_MODE_DISARMED;
 volatile uint32_t g_mechanism_fault = MECHANISM_FAULT_NONE;
@@ -38,6 +42,10 @@ static bool IsMotorActive(TuningMotorId id)
 {
 #if Z_AXIS_BENCH_MODE
   return id == TUNING_MOTOR_LIFT;
+#elif ROTATOR_BENCH_MODE
+  return id == TUNING_MOTOR_ROTATOR;
+#elif LOADER_BENCH_MODE
+  return id == TUNING_MOTOR_LOADER_A || id == TUNING_MOTOR_LOADER_B;
 #else
   (void)id;
   return true;
@@ -101,6 +109,7 @@ static bool SetTarget(TuningMotorId id, Motor *motor, float counts)
     return false;
   }
   Motor_SetTargetCounts(motor, counts);
+  if (id == TUNING_MOTOR_ROTATOR) rotator_target_active = true;
   motion_watch[id] = (MotionWatch){true, HAL_GetTick(), 0U};
   return true;
 }
@@ -113,6 +122,7 @@ void Mechanism_Init(void)
   LoadDefaultProfile(TUNING_MOTOR_ROTATOR);
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
+  rotator_target_active = false;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
@@ -142,6 +152,7 @@ bool Mechanism_Arm(uint32_t now_ms)
   lift.feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current;
   lift.directional_feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].directional_feedforward_current;
   rotator.feedforward_current = runtime_tuning[TUNING_MOTOR_ROTATOR].feedforward_current;
+  rotator_target_active = false;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   mode = MECHANISM_MODE_READY;
   g_mechanism_mode = (uint32_t)mode;
@@ -151,6 +162,7 @@ bool Mechanism_Arm(uint32_t now_ms)
 
 void Mechanism_EStop(MechanismFault reason)
 {
+  rotator_target_active = false;
   mode = MECHANISM_MODE_FAULT;
   fault = reason;
   g_mechanism_mode = (uint32_t)mode;
@@ -178,7 +190,9 @@ void Mechanism_ControlTick(uint32_t now_ms)
     if (IsMotorActive(TUNING_MOTOR_LOADER_A)) loader_a_current = Motor_ControlStep(&loader_a, now_ms, CONTROL_PERIOD_S);
     if (IsMotorActive(TUNING_MOTOR_LOADER_B)) loader_b_current = Motor_ControlStep(&loader_b, now_ms, CONTROL_PERIOD_S);
     if (IsMotorActive(TUNING_MOTOR_LIFT)) lift_current = Motor_ControlStep(&lift, now_ms, CONTROL_PERIOD_S);
-    if (IsMotorActive(TUNING_MOTOR_ROTATOR)) rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
+    if (IsMotorActive(TUNING_MOTOR_ROTATOR) && rotator_target_active) {
+      rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
+    }
   }
   /* A C610 may only refresh its feedback after it sees its command group.
    * During single-axis commissioning, send an explicit zero-current keepalive
@@ -188,13 +202,33 @@ void Mechanism_ControlTick(uint32_t now_ms)
   {
     CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
     if (mode != MECHANISM_MODE_DISARMED) {
-      CanBus_SendGM6020Current(rotator_current);
+      CanBus_SendGM6020Voltage(rotator_current);
     }
   }
+#elif LOADER_BENCH_MODE
+  /* C610 feedback needs a command-group keepalive even while DISARMED. */
+  (void)lift_current;
+  (void)rotator_current;
+  CanBus_SendM2006Currents(loader_a_current, loader_b_current, 0);
+#elif ROTATOR_BENCH_MODE
+  /* Some GM6020 firmware revisions do not report feedback after an all-zero
+   * command.  A deliberately limited DISARMED probe can solicit it for bench
+   * commissioning; READY always uses only the closed-loop output. */
+  int16_t probe_voltage_mV = 0;
+  (void)loader_a_current;
+  (void)loader_b_current;
+  (void)lift_current;
+  if (mode == MECHANISM_MODE_DISARMED) {
+    probe_voltage_mV = g_rotator_bench_probe_voltage_mV;
+    if (probe_voltage_mV > 3000) probe_voltage_mV = 3000;
+    if (probe_voltage_mV < -3000) probe_voltage_mV = -3000;
+  }
+  if (mode != MECHANISM_MODE_READY) rotator_current = probe_voltage_mV;
+  CanBus_SendGM6020Voltage(rotator_current);
 #else
   if (mode != MECHANISM_MODE_DISARMED) {
     CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
-    CanBus_SendGM6020Current(rotator_current);
+    CanBus_SendGM6020Voltage(rotator_current);
   }
 #endif
 }
@@ -209,6 +243,7 @@ void Mechanism_Service(uint32_t now_ms)
     Mechanism_EStop(MECHANISM_FAULT_HAL);
   }
   if (mode == MECHANISM_MODE_READY) {
+#if !LOADER_BENCH_MODE
     for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
       Motor *motor = MotorFor(id);
       const MotionSafetyProfile *safety = Tuning_GetMotionSafetyProfile(id);
@@ -233,6 +268,7 @@ void Mechanism_Service(uint32_t now_ms)
         motion_watch[id].stalled_since_ms = 0U;
       }
     }
+#endif
   }
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
@@ -257,6 +293,28 @@ bool Mechanism_ZeroLiftPosition(void)
   return true;
 }
 
+bool Mechanism_ZeroLoaderPositions(void)
+{
+  if (!loader_a.has_feedback || !loader_b.has_feedback) return false;
+  Motor_ZeroPosition(&loader_a);
+  Motor_ZeroPosition(&loader_b);
+  motion_watch[TUNING_MOTOR_LOADER_A] = (MotionWatch){0};
+  motion_watch[TUNING_MOTOR_LOADER_B] = (MotionWatch){0};
+  PublishTelemetry(TUNING_MOTOR_LOADER_A);
+  PublishTelemetry(TUNING_MOTOR_LOADER_B);
+  return true;
+}
+
+bool Mechanism_ZeroRotatorPosition(void)
+{
+  if (!rotator.has_feedback) return false;
+  Motor_ZeroPosition(&rotator);
+  rotator_target_active = false;
+  motion_watch[TUNING_MOTOR_ROTATOR] = (MotionWatch){0};
+  PublishTelemetry(TUNING_MOTOR_ROTATOR);
+  return true;
+}
+
 float Mechanism_LiftCmToCounts(float cm)
 {
   return cm * Tuning_GetLiftCountsPerCm();
@@ -273,11 +331,41 @@ bool Mechanism_TurnRotatorTo(float motor_degrees)
   return SetTarget(TUNING_MOTOR_ROTATOR, &rotator, motor_degrees * Tuning_GetRotatorCountsPerDegree());
 }
 
-bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts)
+float Mechanism_LoaderUpperCountsToCm(float counts)
+{
+  return -counts / Tuning_GetLoaderUpperCountsPerCm();
+}
+
+float Mechanism_LoaderLowerCountsToCm(float counts)
+{
+  return -counts / Tuning_GetLoaderLowerCountsPerCm();
+}
+
+bool Mechanism_MoveLoaderToCm(float upper_cm, float lower_cm)
 {
   if (mode != MECHANISM_MODE_READY) return false;
-  return SetTarget(TUNING_MOTOR_LOADER_A, &loader_a, motor_a_counts) &&
-         SetTarget(TUNING_MOTOR_LOADER_B, &loader_b, motor_b_counts);
+  return SetTarget(TUNING_MOTOR_LOADER_A, &loader_a,
+                   -upper_cm * Tuning_GetLoaderUpperCountsPerCm()) &&
+         SetTarget(TUNING_MOTOR_LOADER_B, &loader_b,
+                   -lower_cm * Tuning_GetLoaderLowerCountsPerCm());
+}
+
+bool Mechanism_MoveLoaderBenchToCm(float upper_cm, float lower_cm)
+{
+  /* A reset can occur with the carriage already extended. In that case raw
+   * count zero is not the retracted endpoint, and a legitimate recovery
+   * target is negative cm. Bench control therefore bypasses only the loader
+   * absolute soft bounds; production Mechanism_MoveLoaderToCm remains bound. */
+  float upper_target;
+  float lower_target;
+  if (mode != MECHANISM_MODE_READY) return false;
+  upper_target = -upper_cm * Tuning_GetLoaderUpperCountsPerCm();
+  lower_target = -lower_cm * Tuning_GetLoaderLowerCountsPerCm();
+  Motor_SetTargetCounts(&loader_a, upper_target);
+  Motor_SetTargetCounts(&loader_b, lower_target);
+  motion_watch[TUNING_MOTOR_LOADER_A] = (MotionWatch){true, HAL_GetTick(), 0U};
+  motion_watch[TUNING_MOTOR_LOADER_B] = (MotionWatch){true, HAL_GetTick(), 0U};
+  return true;
 }
 
 static bool IsAtTarget(TuningMotorId id)
@@ -306,8 +394,7 @@ bool Mechanism_SetPid(TuningMotorId id, MechanismPidLoop loop,
   pid->kd = kd;
   pid->integral_limit = integral_limit;
   pid->output_limit = output_limit;
-  if ((motor->config.kind == MOTOR_KIND_M2006 && loop == MECHANISM_PID_VELOCITY) ||
-      (motor->config.kind == MOTOR_KIND_GM6020 && loop == MECHANISM_PID_POSITION)) {
+  if (loop == MECHANISM_PID_VELOCITY) {
     motor->config.current_limit = output_limit;
   }
   Pid_Reset(pid);
@@ -330,11 +417,7 @@ bool Mechanism_SetCurrentLimit(TuningMotorId id, float current_limit)
   Motor *motor = MotorFor(id);
   if (mode != MECHANISM_MODE_DISARMED || motor == 0 || current_limit <= 0.0f) return false;
   motor->config.current_limit = current_limit;
-  if (motor->config.kind == MOTOR_KIND_M2006) {
-    motor->config.velocity_pid.output_limit = current_limit;
-  } else {
-    motor->config.position_pid.output_limit = current_limit;
-  }
+  motor->config.velocity_pid.output_limit = current_limit;
   return true;
 }
 

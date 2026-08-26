@@ -38,6 +38,11 @@ extern "C" {
 
 void MX_GPIO_Init(void);
 
+/* Board-specific GM6020 interface / power-enable line.  This pin is present
+ * in the proven standalone GM6020 firmware for the same H723 board. */
+#define GM6020_ENABLE_Pin GPIO_PIN_4
+#define GM6020_ENABLE_GPIO_Port GPIOG
+
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */

@@ -82,10 +82,10 @@ void CanBus_SendM2006Currents(int16_t loader_a, int16_t loader_b, int16_t lift)
   Send(CAN_ID_M2006_COMMAND_GROUP, data);
 }
 
-void CanBus_SendGM6020Current(int16_t rotator)
+void CanBus_SendGM6020Voltage(int16_t voltage_mV)
 {
   uint8_t data[8] = {0};
-  StoreBe16(&data[2], rotator); /* ID 0x206 uses group 0x1FF slot 2. */
+  StoreBe16(&data[2], voltage_mV); /* ID 0x206 uses group 0x1FF slot 2. */
   Send(CAN_ID_GM6020_COMMAND_GROUP, data);
 }
 

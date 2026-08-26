@@ -28,6 +28,8 @@ int main(void)
   MX_GPIO_Init();
   MX_FDCAN1_Init();
   MX_USART3_UART_Init();
+  /* Required by the board's known-good GM6020 firmware. */
+  HAL_GPIO_WritePin(GM6020_ENABLE_GPIO_Port, GM6020_ENABLE_Pin, GPIO_PIN_SET);
   Mechanism_Init();
   CanBus_Init();
 

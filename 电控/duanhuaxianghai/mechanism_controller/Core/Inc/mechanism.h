@@ -67,11 +67,22 @@ MechanismFault Mechanism_GetFault(void);
 bool Mechanism_MoveLiftTo(float counts);
 /* Set the current Z-axis location to 0 counts; raw CAN angle remains continuous. */
 bool Mechanism_ZeroLiftPosition(void);
+/* Set both front-extension motor locations to 0 counts at the current pose. */
+bool Mechanism_ZeroLoaderPositions(void);
+/* Set the current GM6020 angle to 0 degrees without disturbing CAN tracking. */
+bool Mechanism_ZeroRotatorPosition(void);
 /* Unit conversion only: motor control and CAN feedback remain in counts. */
 float Mechanism_LiftCmToCounts(float cm);
 float Mechanism_LiftCountsToCm(float counts);
 bool Mechanism_TurnRotatorTo(float motor_degrees);
-bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
+/* Both inputs are physical extension in cm from command-6's retracted zero.
+ * `upper_cm` is C610 ID 1 / loader A; `lower_cm` is C610 ID 2 / loader B. */
+bool Mechanism_MoveLoaderToCm(float upper_cm, float lower_cm);
+/* Bench-only absolute targets. Unlike the competition API, values may be
+ * negative after a firmware reset at an unknown physical position. */
+bool Mechanism_MoveLoaderBenchToCm(float upper_cm, float lower_cm);
+float Mechanism_LoaderUpperCountsToCm(float counts);
+float Mechanism_LoaderLowerCountsToCm(float counts);
 bool Mechanism_IsLiftAtTarget(void);
 bool Mechanism_IsRotatorAtTarget(void);
 bool Mechanism_IsLoaderAtTarget(void);

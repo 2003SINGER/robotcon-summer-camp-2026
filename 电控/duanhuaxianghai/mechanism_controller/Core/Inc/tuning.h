@@ -39,6 +39,11 @@ const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id);
 float Tuning_GetRotatorCountsPerDegree(void);
 /* M2006 rotor encoder counts per centimetre of Z-axis belt travel. */
 float Tuning_GetLiftCountsPerCm(void);
+/* Front extension calibration.  A is the upper screw, B is the lower screw.
+ * Physical extension is positive in cm; their raw encoder coordinates are
+ * negative when extending from the retracted software zero. */
+float Tuning_GetLoaderUpperCountsPerCm(void);
+float Tuning_GetLoaderLowerCountsPerCm(void);
 const MotionSafetyProfile *Tuning_GetMotionSafetyProfile(TuningMotorId id);
 
 #endif

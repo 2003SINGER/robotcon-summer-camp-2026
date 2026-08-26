@@ -7,10 +7,13 @@
 #define CONTROL_PERIOD_S                    0.001f
 #define MOTOR_FEEDBACK_TIMEOUT_MS           20U
 
-/* Temporary single-axis commissioning mode.  Only the lift feedback is
- * required for ARM; loader and rotator command slots remain zero.  Set to 0
- * before reconnecting the complete mechanism. */
-#define Z_AXIS_BENCH_MODE                    1U
+/* Temporary single-axis commissioning modes.  Exactly one may be 1.  The
+ * selected mechanism is the only feedback source required for ARM; all other CAN
+ * command slots remain at zero.  Set both to 0 before reconnecting the full
+ * mechanism. */
+#define Z_AXIS_BENCH_MODE                    0U
+#define LOADER_BENCH_MODE                    1U
+#define ROTATOR_BENCH_MODE                   0U
 
 #define CAN_ID_M2006_COMMAND_GROUP          0x200U
 #define CAN_ID_GM6020_COMMAND_GROUP         0x1FFU

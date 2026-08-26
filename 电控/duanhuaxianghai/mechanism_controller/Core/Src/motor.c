@@ -155,26 +155,28 @@ int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s)
 
   Motor_UpdateTrajectory(motor, dt_s);
 
-  if (motor->config.kind == MOTOR_KIND_M2006) {
+  {
+    /* Both motor families use the same cascade: position -> speed -> effort.
+     * The outer loop output is RPM and the inner loop output is the CAN
+     * effort command.  This gives the GM6020 a controlled approach to the
+     * 180-degree endpoint instead of applying position error as raw current. */
     const float speed_target = Pid_Step(&motor->config.position_pid,
                                         motor->target_counts,
                                         (float)motor->total_counts,
                                         0.0f, dt_s);
     float feedforward = motor->feedforward_current;
-    /* Do not apply dry-friction compensation at rest: only a clear requested
-     * motion direction gets the calibrated +/- term. */
-    if (speed_target > 50.0f) {
-      feedforward += motor->directional_feedforward_current;
-    } else if (speed_target < -50.0f) {
-      feedforward -= motor->directional_feedforward_current;
+    if (motor->config.kind == MOTOR_KIND_M2006) {
+      /* Do not apply dry-friction compensation at rest: only a clear requested
+       * motion direction gets the calibrated +/- term. */
+      if (speed_target > 50.0f) {
+        feedforward += motor->directional_feedforward_current;
+      } else if (speed_target < -50.0f) {
+        feedforward -= motor->directional_feedforward_current;
+      }
     }
     motor->applied_feedforward_current = feedforward;
     output = Pid_Step(&motor->config.velocity_pid, speed_target,
                       (float)motor->speed_rpm, feedforward, dt_s);
-  } else {
-    motor->applied_feedforward_current = motor->feedforward_current;
-    output = Pid_Step(&motor->config.position_pid, motor->target_counts,
-                      (float)motor->total_counts, motor->applied_feedforward_current, dt_s);
   }
 
   return (int16_t)(output * motor->config.current_sign);
