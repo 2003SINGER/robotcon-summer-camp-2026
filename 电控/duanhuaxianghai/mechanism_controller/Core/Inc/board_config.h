@@ -12,7 +12,7 @@
  * command slots remain at zero.  Set both to 0 before reconnecting the full
  * mechanism. */
 #define Z_AXIS_BENCH_MODE                    0U
-#define LOADER_BENCH_MODE                    1U
+#define LOADER_BENCH_MODE                    0U
 #define ROTATOR_BENCH_MODE                   0U
 
 #define CAN_ID_M2006_COMMAND_GROUP          0x200U

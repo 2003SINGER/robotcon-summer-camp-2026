@@ -2,6 +2,8 @@
 #include "board_config.h"
 #include "command_mailbox.h"
 #include "mechanism.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Competition-flow positions are local to this state machine. They are
  * relative to the encoder origin captured when the mechanism is armed. */
@@ -170,6 +172,35 @@ void RobotFsm_Tick(uint32_t now_ms)
   RotatorBench_Tick(now_ms);
   return;
 #else
+  /*
+   * TEMPORARY WHOLE-ROBOT INTEGRATION SCRIPT
+   *
+   * Write a simple ordered test sequence below while pneumatic and chassis
+   * interfaces are absent. RobotFsmTask may use vTaskDelay(); MotorControlTask
+   * (1 ms) and SafetyTask (10 ms) continue running independently.
+   *
+   * Basic motion commands (all targets are physical units):
+   * 
+   *   Mechanism_MoveLoaderToCm(upper_cm, lower_cm);  // front screws, cm
+   *   Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(z_cm)); // Z axis, cm
+   *   Mechanism_TurnRotatorTo(degrees);              // flip axis, degrees
+   *   vTaskDelay(pdMS_TO_TICKS(milliseconds));       // temporary wait
+   *
+   * Suggested temporary structure:
+   *   if (Mechanism_GetMode() == MECHANISM_MODE_READY) {
+   *     Mechanism_MoveLoaderToCm(39.0f, 35.0f);
+   *     vTaskDelay(pdMS_TO_TICKS(1000));
+   *     Mechanism_MoveLoaderToCm(0.0f, 0.0f);
+   *   }
+   *
+   * Do not call command 6 / zero-position functions during a normal sequence.
+   * Before competition, replace delays with the state machine below so actual
+   * completion and vacuum confirmation decide each transition.
+   */
+  {
+    
+  }
+#if 0
   RobotCommand command;
   /* Mailbox is deliberately consumed by this task, not by the CAN callback.
    * This prevents a communication frame from interrupting a motion sequence. */
@@ -215,6 +246,7 @@ void RobotFsm_Tick(uint32_t now_ms)
     default:
       break;
   }
+#endif
 #endif
 }
 

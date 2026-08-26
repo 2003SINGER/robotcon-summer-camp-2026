@@ -226,10 +226,12 @@ void Mechanism_ControlTick(uint32_t now_ms)
   if (mode != MECHANISM_MODE_READY) rotator_current = probe_voltage_mV;
   CanBus_SendGM6020Voltage(rotator_current);
 #else
-  if (mode != MECHANISM_MODE_DISARMED) {
-    CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
-    CanBus_SendGM6020Voltage(rotator_current);
-  }
+  /* Keep every ESC's command group alive while DISARMED. C610 feedback may
+   * not start until it receives a 0x200 frame; zero is no-torque, so this
+   * allows Mechanism_Arm() to validate all four feedback sources after a
+   * normal whole-robot power-up. */
+  CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
+  CanBus_SendGM6020Voltage(rotator_current);
 #endif
 }
 
