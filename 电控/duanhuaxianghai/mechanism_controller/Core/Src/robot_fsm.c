@@ -1,4 +1,5 @@
 #include "robot_fsm.h"
+#include "board_config.h"
 #include "command_mailbox.h"
 #include "mechanism.h"
 
@@ -23,6 +24,32 @@
 
 static RobotFsmState state;
 static bool grip_confirmed;
+volatile ZAxisBenchCommand g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
+volatile float g_z_axis_bench_target_counts = 0.0f;
+
+static void ZAxisBench_Tick(uint32_t now_ms)
+{
+  switch (g_z_axis_bench_command) {
+    case Z_AXIS_BENCH_ARM:
+      (void)Mechanism_Arm(now_ms);
+      break;
+    case Z_AXIS_BENCH_MOVE_TO_TARGET:
+      (void)Mechanism_MoveLiftTo(g_z_axis_bench_target_counts);
+      break;
+    case Z_AXIS_BENCH_MOVE_HOME:
+      (void)Mechanism_MoveLiftTo(0.0f);
+      break;
+    case Z_AXIS_BENCH_ESTOP:
+      Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
+      break;
+    case Z_AXIS_BENCH_CLEAR_FAULT:
+      (void)Mechanism_ClearFault();
+      break;
+    default:
+      return;
+  }
+  g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
+}
 
 void RobotFsm_Init(void)
 {
@@ -43,6 +70,10 @@ void RobotFsm_SetExternalGripConfirmed(bool confirmed) { grip_confirmed = confir
 
 void RobotFsm_Tick(uint32_t now_ms)
 {
+#if Z_AXIS_BENCH_MODE
+  ZAxisBench_Tick(now_ms);
+  return;
+#else
   RobotCommand command;
   /* Mailbox is deliberately consumed by this task, not by the CAN callback.
    * This prevents a communication frame from interrupting a motion sequence. */
@@ -88,6 +119,7 @@ void RobotFsm_Tick(uint32_t now_ms)
     default:
       break;
   }
+#endif
 }
 
 RobotFsmState RobotFsm_GetState(void) { return state; }

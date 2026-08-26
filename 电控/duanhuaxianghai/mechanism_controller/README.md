@@ -74,6 +74,17 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 ## 调参
 
+### Z 轴台架模式
+
+当前 `board_config.h` 的 `Z_AXIS_BENCH_MODE=1`：仅 Z 轴 C610（ID 3 / 反馈 `0x203`）需要在线，其他三个电机槽位保持零电流。烧录、上电后仍是 `DISARMED`，不会自动运动。连接 ST-Link 并暂停/继续运行后，在 Watch 中修改：
+
+| Watch 变量 | 填入值 |
+| --- | --- |
+| `g_z_axis_bench_command` | `1` 使能并保持当前点；`2` 移到 `g_z_axis_bench_target_counts`；`3` 回 0；`4` 急停；`5` 清故障。每个命令被消费后自动回到 0。 |
+| `g_z_axis_bench_target_counts` | 相对 ARM 时刻的编码器目标。首次只填 `200`，确认正方向后再逐步增加。 |
+
+台架模式将 Z 轴电流上限临时降为 `800`，前馈默认为 0。完成台架验证后必须把 `Z_AXIS_BENCH_MODE` 改回 `0`，再接入完整四电机机构。
+
 日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：
 
 - `motor_profiles`：CAN ID、反馈/输出方向、限流、位置/速度 PID、重力前馈和到位容差；

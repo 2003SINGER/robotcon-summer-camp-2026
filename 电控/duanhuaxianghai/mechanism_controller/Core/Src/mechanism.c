@@ -31,6 +31,16 @@ static MotionWatch motion_watch[TUNING_MOTOR_COUNT];
 
 static bool IsAtTarget(TuningMotorId id);
 
+static bool IsMotorActive(TuningMotorId id)
+{
+#if Z_AXIS_BENCH_MODE
+  return id == TUNING_MOTOR_LIFT;
+#else
+  (void)id;
+  return true;
+#endif
+}
+
 static void PublishTelemetry(TuningMotorId id)
 {
   MechanismMotorTelemetry snapshot;
@@ -61,10 +71,11 @@ static void LoadDefaultProfile(TuningMotorId id)
 
 static bool IsFresh(uint32_t now_ms)
 {
-  return Motor_IsFeedbackFresh(&loader_a, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS) &&
-         Motor_IsFeedbackFresh(&loader_b, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS) &&
-         Motor_IsFeedbackFresh(&lift, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS) &&
-         Motor_IsFeedbackFresh(&rotator, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS);
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    Motor *motor = MotorFor(id);
+    if (IsMotorActive(id) && (motor == 0 || !Motor_IsFeedbackFresh(motor, now_ms, MOTOR_FEEDBACK_TIMEOUT_MS))) return false;
+  }
+  return true;
 }
 
 static float Absolute(float value)
@@ -118,10 +129,10 @@ void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_
 bool Mechanism_Arm(uint32_t now_ms)
 {
   if (mode == MECHANISM_MODE_FAULT || !IsFresh(now_ms)) return false;
-  Motor_HoldCurrentPosition(&loader_a);
-  Motor_HoldCurrentPosition(&loader_b);
-  Motor_HoldCurrentPosition(&lift);
-  Motor_HoldCurrentPosition(&rotator);
+  for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
+    Motor *motor = MotorFor(id);
+    if (IsMotorActive(id) && motor != 0) Motor_HoldCurrentPosition(motor);
+  }
   lift.feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current;
   rotator.feedforward_current = runtime_tuning[TUNING_MOTOR_ROTATOR].feedforward_current;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
@@ -151,10 +162,10 @@ void Mechanism_ControlTick(uint32_t now_ms)
   int16_t rotator_current = 0;
 
   if (mode == MECHANISM_MODE_READY) {
-    loader_a_current = Motor_ControlStep(&loader_a, now_ms, CONTROL_PERIOD_S);
-    loader_b_current = Motor_ControlStep(&loader_b, now_ms, CONTROL_PERIOD_S);
-    lift_current = Motor_ControlStep(&lift, now_ms, CONTROL_PERIOD_S);
-    rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
+    if (IsMotorActive(TUNING_MOTOR_LOADER_A)) loader_a_current = Motor_ControlStep(&loader_a, now_ms, CONTROL_PERIOD_S);
+    if (IsMotorActive(TUNING_MOTOR_LOADER_B)) loader_b_current = Motor_ControlStep(&loader_b, now_ms, CONTROL_PERIOD_S);
+    if (IsMotorActive(TUNING_MOTOR_LIFT)) lift_current = Motor_ControlStep(&lift, now_ms, CONTROL_PERIOD_S);
+    if (IsMotorActive(TUNING_MOTOR_ROTATOR)) rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
   }
   /* Do not place even zero-current frames on an unverified bench bus. Once
    * armed, a fault still transmits zero current so the motors stop promptly. */
@@ -177,7 +188,7 @@ void Mechanism_Service(uint32_t now_ms)
     for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
       Motor *motor = MotorFor(id);
       const MotionSafetyProfile *safety = Tuning_GetMotionSafetyProfile(id);
-      if (motor == 0 || safety == 0 || !motion_watch[id].active) continue;
+      if (!IsMotorActive(id) || motor == 0 || safety == 0 || !motion_watch[id].active) continue;
       if (IsAtTarget(id)) {
         motion_watch[id] = (MotionWatch){0};
         continue;

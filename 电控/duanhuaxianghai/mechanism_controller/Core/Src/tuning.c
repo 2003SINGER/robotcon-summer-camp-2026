@@ -1,6 +1,12 @@
 #include "tuning.h"
+#include "board_config.h"
 
 #define M2006_CURRENT_LIMIT 4000.0f
+#if Z_AXIS_BENCH_MODE
+#define LIFT_CURRENT_LIMIT 800.0f
+#else
+#define LIFT_CURRENT_LIMIT M2006_CURRENT_LIMIT
+#endif
 #define GM6020_CURRENT_LIMIT 20000.0f
 
 #define PID_CONFIG(kp_value, ki_value, kd_value, tau_value, integral_limit_value, output_limit_value) \
@@ -46,7 +52,7 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
     "lift",
     /* Shared-CAN allocation: C610 ID 3 (feedback 0x203). Set the physical
      * Z-axis C610 to ID 3 with its Set button before arming this firmware. */
-    {MOTOR_KIND_M2006, 0x203U, 1, 1, M2006_CURRENT_LIMIT,
+    {MOTOR_KIND_M2006, 0x203U, 1, 1, LIFT_CURRENT_LIMIT,
      POSITION_PID(0.05f, 1600.0f), VELOCITY_PID,
      M2006_LIFT_TRAJECTORY_VELOCITY, M2006_LIFT_TRAJECTORY_ACCELERATION},
     0.0f, 1000.0f, 30.0f
