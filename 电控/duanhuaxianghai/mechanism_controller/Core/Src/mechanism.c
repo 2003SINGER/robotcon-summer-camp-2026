@@ -12,9 +12,12 @@ static Motor rotator;
 static volatile MechanismMode mode = MECHANISM_MODE_DISARMED;
 static volatile MechanismFault fault = MECHANISM_FAULT_NONE;
 volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
+volatile uint32_t g_mechanism_mode = MECHANISM_MODE_DISARMED;
+volatile uint32_t g_mechanism_fault = MECHANISM_FAULT_NONE;
 
 typedef struct {
   float feedforward_current;
+  float directional_feedforward_current;
   float target_tolerance_counts;
   float target_speed_tolerance_rpm;
 } RuntimeTuning;
@@ -65,6 +68,7 @@ static void LoadDefaultProfile(TuningMotorId id)
   if (motor == 0 || profile == 0) return;
   Motor_Init(motor, &profile->motor);
   runtime_tuning[id].feedforward_current = profile->default_feedforward_current;
+  runtime_tuning[id].directional_feedforward_current = profile->default_directional_feedforward_current;
   runtime_tuning[id].target_tolerance_counts = profile->target_tolerance_counts;
   runtime_tuning[id].target_speed_tolerance_rpm = profile->target_speed_tolerance_rpm;
 }
@@ -113,6 +117,8 @@ void Mechanism_Init(void)
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
     PublishTelemetry(id);
   }
+  g_mechanism_mode = (uint32_t)mode;
+  g_mechanism_fault = (uint32_t)fault;
 }
 
 void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms)
@@ -134,9 +140,12 @@ bool Mechanism_Arm(uint32_t now_ms)
     if (IsMotorActive(id) && motor != 0) Motor_HoldCurrentPosition(motor);
   }
   lift.feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current;
+  lift.directional_feedforward_current = runtime_tuning[TUNING_MOTOR_LIFT].directional_feedforward_current;
   rotator.feedforward_current = runtime_tuning[TUNING_MOTOR_ROTATOR].feedforward_current;
   for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) motion_watch[id] = (MotionWatch){0};
   mode = MECHANISM_MODE_READY;
+  g_mechanism_mode = (uint32_t)mode;
+  g_mechanism_fault = (uint32_t)fault;
   return true;
 }
 
@@ -144,6 +153,8 @@ void Mechanism_EStop(MechanismFault reason)
 {
   mode = MECHANISM_MODE_FAULT;
   fault = reason;
+  g_mechanism_mode = (uint32_t)mode;
+  g_mechanism_fault = (uint32_t)fault;
 }
 
 bool Mechanism_ClearFault(void)
@@ -151,6 +162,8 @@ bool Mechanism_ClearFault(void)
   if (mode != MECHANISM_MODE_FAULT) return false;
   mode = MECHANISM_MODE_DISARMED;
   fault = MECHANISM_FAULT_NONE;
+  g_mechanism_mode = (uint32_t)mode;
+  g_mechanism_fault = (uint32_t)fault;
   return true;
 }
 
@@ -167,12 +180,23 @@ void Mechanism_ControlTick(uint32_t now_ms)
     if (IsMotorActive(TUNING_MOTOR_LIFT)) lift_current = Motor_ControlStep(&lift, now_ms, CONTROL_PERIOD_S);
     if (IsMotorActive(TUNING_MOTOR_ROTATOR)) rotator_current = Motor_ControlStep(&rotator, now_ms, CONTROL_PERIOD_S);
   }
-  /* Do not place even zero-current frames on an unverified bench bus. Once
-   * armed, a fault still transmits zero current so the motors stop promptly. */
+  /* A C610 may only refresh its feedback after it sees its command group.
+   * During single-axis commissioning, send an explicit zero-current keepalive
+   * while DISARMED so ARM can verify live feedback.  It commands no torque.
+   * Production mode remains silent while DISARMED. */
+#if Z_AXIS_BENCH_MODE
+  {
+    CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
+    if (mode != MECHANISM_MODE_DISARMED) {
+      CanBus_SendGM6020Current(rotator_current);
+    }
+  }
+#else
   if (mode != MECHANISM_MODE_DISARMED) {
     CanBus_SendM2006Currents(loader_a_current, loader_b_current, lift_current);
     CanBus_SendGM6020Current(rotator_current);
   }
+#endif
 }
 
 void Mechanism_Service(uint32_t now_ms)
@@ -222,6 +246,25 @@ bool Mechanism_MoveLiftTo(float counts)
 {
   if (mode != MECHANISM_MODE_READY) return false;
   return SetTarget(TUNING_MOTOR_LIFT, &lift, counts);
+}
+
+bool Mechanism_ZeroLiftPosition(void)
+{
+  if (!lift.has_feedback) return false;
+  Motor_ZeroPosition(&lift);
+  motion_watch[TUNING_MOTOR_LIFT] = (MotionWatch){0};
+  PublishTelemetry(TUNING_MOTOR_LIFT);
+  return true;
+}
+
+float Mechanism_LiftCmToCounts(float cm)
+{
+  return cm * Tuning_GetLiftCountsPerCm();
+}
+
+float Mechanism_LiftCountsToCm(float counts)
+{
+  return counts / Tuning_GetLiftCountsPerCm();
 }
 
 bool Mechanism_TurnRotatorTo(float motor_degrees)
@@ -302,6 +345,14 @@ bool Mechanism_SetFeedforward(TuningMotorId id, float current)
   return true;
 }
 
+bool Mechanism_SetLiftFeedforwardLive(float current)
+{
+  if (mode == MECHANISM_MODE_FAULT) return false;
+  runtime_tuning[TUNING_MOTOR_LIFT].feedforward_current = current;
+  lift.feedforward_current = current;
+  return true;
+}
+
 bool Mechanism_SetTargetTolerance(TuningMotorId id, float counts, float speed_rpm)
 {
   if (mode != MECHANISM_MODE_DISARMED || id >= TUNING_MOTOR_COUNT || counts <= 0.0f || speed_rpm < 0.0f) return false;
@@ -342,6 +393,8 @@ bool Mechanism_GetMotorTelemetry(TuningMotorId id, MechanismMotorTelemetry *tele
   telemetry->trajectory_max_velocity_counts_s = motor->config.trajectory_max_velocity_counts_s;
   telemetry->trajectory_max_acceleration_counts_s2 = motor->config.trajectory_max_acceleration_counts_s2;
   telemetry->feedforward_current = runtime_tuning[id].feedforward_current;
+  telemetry->directional_feedforward_current = runtime_tuning[id].directional_feedforward_current;
+  telemetry->applied_feedforward_current = motor->applied_feedforward_current;
   telemetry->current_limit = motor->config.current_limit;
   Pid_GetDiagnostics(&motor->config.position_pid, &telemetry->position_pid);
   Pid_GetDiagnostics(&motor->config.velocity_pid, &telemetry->velocity_pid);

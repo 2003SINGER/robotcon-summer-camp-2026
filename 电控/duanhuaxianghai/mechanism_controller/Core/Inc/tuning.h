@@ -17,6 +17,7 @@ typedef struct {
   const char *name;
   MotorConfig motor;
   float default_feedforward_current;
+  float default_directional_feedforward_current;
   float target_tolerance_counts;
   float target_speed_tolerance_rpm;
 } MotorProfile;
@@ -36,6 +37,8 @@ typedef struct {
 /* Read-only factory defaults. Runtime writes are mediated by mechanism.c. */
 const MotorProfile *Tuning_GetMotorProfile(TuningMotorId id);
 float Tuning_GetRotatorCountsPerDegree(void);
+/* M2006 rotor encoder counts per centimetre of Z-axis belt travel. */
+float Tuning_GetLiftCountsPerCm(void);
 const MotionSafetyProfile *Tuning_GetMotionSafetyProfile(TuningMotorId id);
 
 #endif

@@ -25,16 +25,23 @@
 static RobotFsmState state;
 static bool grip_confirmed;
 volatile ZAxisBenchCommand g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
-volatile float g_z_axis_bench_target_counts = 0.0f;
+volatile float g_z_axis_bench_target_cm = 0.0f;
+volatile float g_z_axis_bench_reference_counts = 0.0f;
+volatile float g_z_axis_bench_feedforward_current = 0.0f;
 
 static void ZAxisBench_Tick(uint32_t now_ms)
 {
   switch (g_z_axis_bench_command) {
     case Z_AXIS_BENCH_ARM:
-      (void)Mechanism_Arm(now_ms);
-      break;
+      if (Mechanism_Arm(now_ms)) {
+        g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
+      }
+      /* Keep retrying until a fresh CAN feedback frame arrives.  A one-shot
+       * ARM command is awkward under SWD because halting the core can make a
+       * previously valid frame older than MOTOR_FEEDBACK_TIMEOUT_MS. */
+      return;
     case Z_AXIS_BENCH_MOVE_TO_TARGET:
-      (void)Mechanism_MoveLiftTo(g_z_axis_bench_target_counts);
+      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(g_z_axis_bench_target_cm));
       break;
     case Z_AXIS_BENCH_MOVE_HOME:
       (void)Mechanism_MoveLiftTo(0.0f);
@@ -44,6 +51,14 @@ static void ZAxisBench_Tick(uint32_t now_ms)
       break;
     case Z_AXIS_BENCH_CLEAR_FAULT:
       (void)Mechanism_ClearFault();
+      break;
+    case Z_AXIS_BENCH_CAPTURE_REFERENCE:
+      if (Mechanism_ZeroLiftPosition()) {
+        g_z_axis_bench_reference_counts = 0.0f;
+      }
+      break;
+    case Z_AXIS_BENCH_APPLY_FEEDFORWARD:
+      (void)Mechanism_SetLiftFeedforwardLive(g_z_axis_bench_feedforward_current);
       break;
     default:
       return;

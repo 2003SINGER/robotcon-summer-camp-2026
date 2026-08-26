@@ -35,13 +35,18 @@ typedef struct {
   float goal_counts;
   float target_counts;
   float trajectory_velocity_counts_s;
+  /* Constant gravity term plus a direction-dependent motion-friction term. */
   float feedforward_current;
+  float directional_feedforward_current;
+  float applied_feedforward_current;
 } Motor;
 
 void Motor_Init(Motor *motor, const MotorConfig *config);
 void Motor_OnFeedback(Motor *motor, const uint8_t data[8], uint32_t now_ms);
 bool Motor_IsFeedbackFresh(const Motor *motor, uint32_t now_ms, uint32_t timeout_ms);
 void Motor_HoldCurrentPosition(Motor *motor);
+/* Rebase software coordinates without touching the encoder's raw angle. */
+void Motor_ZeroPosition(Motor *motor);
 void Motor_SetTargetCounts(Motor *motor, float target_counts);
 bool Motor_IsTrajectoryComplete(const Motor *motor);
 int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s);

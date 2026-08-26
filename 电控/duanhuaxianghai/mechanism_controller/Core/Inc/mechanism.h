@@ -38,6 +38,8 @@ typedef struct {
   float trajectory_max_velocity_counts_s;
   float trajectory_max_acceleration_counts_s2;
   float feedforward_current;
+  float directional_feedforward_current;
+  float applied_feedforward_current;
   float current_limit;
   PidDiagnostics position_pid;
   PidDiagnostics velocity_pid;
@@ -48,6 +50,9 @@ typedef struct {
 /* Read-only snapshot for the SWD debugger. Updated by SafetyTask at 10 ms;
  * control ownership remains inside mechanism.c. */
 extern volatile MechanismMotorTelemetry g_mechanism_telemetry[TUNING_MOTOR_COUNT];
+/* SWD-visible state snapshots, updated by SafetyTask. */
+extern volatile uint32_t g_mechanism_mode;
+extern volatile uint32_t g_mechanism_fault;
 
 void Mechanism_Init(void);
 void Mechanism_OnCanFeedback(uint16_t identifier, const uint8_t data[8], uint32_t now_ms);
@@ -60,6 +65,11 @@ MechanismMode Mechanism_GetMode(void);
 MechanismFault Mechanism_GetFault(void);
 
 bool Mechanism_MoveLiftTo(float counts);
+/* Set the current Z-axis location to 0 counts; raw CAN angle remains continuous. */
+bool Mechanism_ZeroLiftPosition(void);
+/* Unit conversion only: motor control and CAN feedback remain in counts. */
+float Mechanism_LiftCmToCounts(float cm);
+float Mechanism_LiftCountsToCm(float counts);
 bool Mechanism_TurnRotatorTo(float motor_degrees);
 bool Mechanism_MoveLoaderTo(float motor_a_counts, float motor_b_counts);
 bool Mechanism_IsLiftAtTarget(void);
@@ -73,6 +83,8 @@ bool Mechanism_SetPid(TuningMotorId motor, MechanismPidLoop loop,
 bool Mechanism_SetDerivativeFilter(TuningMotorId motor, MechanismPidLoop loop, float tau_s);
 bool Mechanism_SetCurrentLimit(TuningMotorId motor, float current_limit);
 bool Mechanism_SetFeedforward(TuningMotorId motor, float current);
+/* Bench-only live adjustment.  Keeps the current motion target unchanged. */
+bool Mechanism_SetLiftFeedforwardLive(float current);
 bool Mechanism_SetTargetTolerance(TuningMotorId motor, float counts, float speed_rpm);
 bool Mechanism_SetMotionLimits(TuningMotorId motor, float max_velocity_counts_s,
                                float max_acceleration_counts_s2);

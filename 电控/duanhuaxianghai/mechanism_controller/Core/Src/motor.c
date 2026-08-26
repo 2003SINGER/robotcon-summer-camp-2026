@@ -73,6 +73,8 @@ void Motor_Init(Motor *motor, const MotorConfig *config)
   motor->target_counts = 0.0f;
   motor->trajectory_velocity_counts_s = 0.0f;
   motor->feedforward_current = 0.0f;
+  motor->directional_feedforward_current = 0.0f;
+  motor->applied_feedforward_current = 0.0f;
   Pid_Reset(&motor->config.position_pid);
   Pid_Reset(&motor->config.velocity_pid);
 }
@@ -113,6 +115,20 @@ void Motor_HoldCurrentPosition(Motor *motor)
   motor->target_counts = (float)motor->total_counts;
   motor->trajectory_velocity_counts_s = 0.0f;
   motor->feedforward_current = 0.0f;
+  motor->directional_feedforward_current = 0.0f;
+  motor->applied_feedforward_current = 0.0f;
+  Pid_Reset(&motor->config.position_pid);
+  Pid_Reset(&motor->config.velocity_pid);
+}
+
+void Motor_ZeroPosition(Motor *motor)
+{
+  /* last_raw_angle is deliberately retained.  The next CAN feedback then
+   * continues integrating normally from this new software origin. */
+  motor->total_counts = 0;
+  motor->goal_counts = 0.0f;
+  motor->target_counts = 0.0f;
+  motor->trajectory_velocity_counts_s = 0.0f;
   Pid_Reset(&motor->config.position_pid);
   Pid_Reset(&motor->config.velocity_pid);
 }
@@ -144,11 +160,21 @@ int16_t Motor_ControlStep(Motor *motor, uint32_t now_ms, float dt_s)
                                         motor->target_counts,
                                         (float)motor->total_counts,
                                         0.0f, dt_s);
+    float feedforward = motor->feedforward_current;
+    /* Do not apply dry-friction compensation at rest: only a clear requested
+     * motion direction gets the calibrated +/- term. */
+    if (speed_target > 50.0f) {
+      feedforward += motor->directional_feedforward_current;
+    } else if (speed_target < -50.0f) {
+      feedforward -= motor->directional_feedforward_current;
+    }
+    motor->applied_feedforward_current = feedforward;
     output = Pid_Step(&motor->config.velocity_pid, speed_target,
-                      (float)motor->speed_rpm, motor->feedforward_current, dt_s);
+                      (float)motor->speed_rpm, feedforward, dt_s);
   } else {
+    motor->applied_feedforward_current = motor->feedforward_current;
     output = Pid_Step(&motor->config.position_pid, motor->target_counts,
-                      (float)motor->total_counts, motor->feedforward_current, dt_s);
+                      (float)motor->total_counts, motor->applied_feedforward_current, dt_s);
   }
 
   return (int16_t)(output * motor->config.current_sign);

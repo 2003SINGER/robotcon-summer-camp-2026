@@ -19,12 +19,17 @@ typedef enum {
   Z_AXIS_BENCH_MOVE_TO_TARGET,
   Z_AXIS_BENCH_MOVE_HOME,
   Z_AXIS_BENCH_ESTOP,
-  Z_AXIS_BENCH_CLEAR_FAULT
+  Z_AXIS_BENCH_CLEAR_FAULT,
+  Z_AXIS_BENCH_CAPTURE_REFERENCE,
+  Z_AXIS_BENCH_APPLY_FEEDFORWARD
 } ZAxisBenchCommand;
 
-/* Edit from the debugger Watch window while Z_AXIS_BENCH_MODE is 1. */
+/* Write from the GDB Debug Console while Z_AXIS_BENCH_MODE is 1.
+ * Move targets are centimetres from the software zero set by command 6. */
 extern volatile ZAxisBenchCommand g_z_axis_bench_command;
-extern volatile float g_z_axis_bench_target_counts;
+extern volatile float g_z_axis_bench_target_cm;
+extern volatile float g_z_axis_bench_reference_counts;
+extern volatile float g_z_axis_bench_feedforward_current;
 
 void RobotFsm_Init(void);
 bool RobotFsm_StartRetrieve(void);
