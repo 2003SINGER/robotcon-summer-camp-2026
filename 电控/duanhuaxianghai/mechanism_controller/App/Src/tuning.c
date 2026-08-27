@@ -76,14 +76,16 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
     {MOTOR_KIND_M2006, 0x201U, 1, 1, M2006_CURRENT_LIMIT,
      M2006_LOADER_POSITION_PID, VELOCITY_PID,
      M2006_LOADER_TRAJECTORY_VELOCITY, M2006_LOADER_TRAJECTORY_ACCELERATION},
-    0.0f, 0.0f, 1000.0f, 30.0f
+    /* 3000 counts is about 0.19 mm at this screw's measured calibration. */
+    0.0f, 0.0f, 3000.0f, 50.0f, 120U
   },
   [TUNING_MOTOR_LOADER_B] = {
     "loader_b",
     {MOTOR_KIND_M2006, 0x202U, 1, 1, M2006_CURRENT_LIMIT,
      M2006_LOADER_POSITION_PID, VELOCITY_PID,
      M2006_LOADER_TRAJECTORY_VELOCITY, M2006_LOADER_TRAJECTORY_ACCELERATION},
-    0.0f, 0.0f, 1000.0f, 30.0f
+    /* 3000 counts is about 0.18 mm at this screw's measured calibration. */
+    0.0f, 0.0f, 3000.0f, 50.0f, 120U
   },
   [TUNING_MOTOR_LIFT] = {
     "lift",
@@ -94,14 +96,16 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
      M2006_LIFT_TRAJECTORY_VELOCITY, M2006_LIFT_TRAJECTORY_ACCELERATION},
     /* Bench-calibrated common gravity term plus opposite dry-friction terms.
      * The latter is applied only while the position loop requests motion. */
-    628.0f, 1100.0f, 1000.0f, 30.0f
+    /* 2000 counts is about 0.76 mm of Z-axis belt travel. */
+    628.0f, 1100.0f, 2000.0f, 50.0f, 150U
   },
   [TUNING_MOTOR_ROTATOR] = {
     "rotator",
     {MOTOR_KIND_GM6020, 0x206U, 1, 1, GM6020_VOLTAGE_LIMIT_MV,
      GM6020_POSITION_PID, GM6020_VELOCITY_PID,
      GM6020_TRAJECTORY_VELOCITY, GM6020_TRAJECTORY_ACCELERATION},
-    0.0f, 0.0f, 1000.0f, 30.0f
+    /* GM6020 is direct-drive: 68 counts is 3 degrees, unlike an M2006. */
+    0.0f, 0.0f, 68.0f, 10.0f, 180U
   }
 };
 

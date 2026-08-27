@@ -20,6 +20,9 @@ typedef struct {
   float default_directional_feedforward_current;
   float target_tolerance_counts;
   float target_speed_tolerance_rpm;
+  /* A target must remain inside both deadbands for this long before the
+   * workflow may advance.  This is completion qualification, not PID logic. */
+  uint32_t target_settle_time_ms;
 } MotorProfile;
 
 /* Safety bounds are independent from task waypoints in robot_fsm.c.  Values

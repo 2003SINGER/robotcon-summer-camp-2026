@@ -169,6 +169,16 @@ bool RobotFsm_StartRetrieve(void)
 
 void RobotFsm_SetExternalGripConfirmed(bool confirmed) { grip_confirmed = confirmed; }
 
+/* Only RobotFsmTask blocks here.  The 1 ms motor task and 10 ms safety task
+ * remain scheduled, so target qualification and feedback safety continue. */
+static bool WaitForMechanismTarget(bool (*is_at_target)(void))
+{
+  while (Mechanism_GetMode() == MECHANISM_MODE_READY && !is_at_target()) {
+    vTaskDelay(pdMS_TO_TICKS(20U));
+  }
+  return Mechanism_GetMode() == MECHANISM_MODE_READY;
+}
+
 void RobotFsm_Tick(uint32_t now_ms)
 {
 #if Z_AXIS_BENCH_MODE
@@ -215,33 +225,34 @@ void RobotFsm_Tick(uint32_t now_ms)
       smoke_test_started = true;
 
       (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
-      //等z轴到位
+      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
 
       vTaskDelay(pdMS_TO_TICKS(6000U));//吸盘吸
 
       (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
-      vTaskDelay(pdMS_TO_TICKS(4000U));//z轴到位
+      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
 
       (void)Mechanism_TurnRotatorTo(180.0f);
-      vTaskDelay(pdMS_TO_TICKS(6000U));//旋转到位
+      if (!WaitForMechanismTarget(Mechanism_IsRotatorAtTarget)) return;
       
       
       (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
       vTaskDelay(pdMS_TO_TICKS(3000U));//吸盘释放
 
       /* Loader zero was calibrated at its front position.  The lower screw
        * therefore retracts toward -20 cm in this temporary sequence. */
       (void)Mechanism_MoveLoaderBenchToCm(15.0f, 25.0f);
-      vTaskDelay(pdMS_TO_TICKS(3000U));
+      if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
 
       (void)Mechanism_MoveLoaderBenchToCm(1.0f, 1.0f);
-      vTaskDelay(pdMS_TO_TICKS(3000U));
+      if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
 
       (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(0.0f));
-      vTaskDelay(pdMS_TO_TICKS(3000U));
+      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
       
       (void)Mechanism_TurnRotatorTo(0.0f);
-      vTaskDelay(pdMS_TO_TICKS(1000U));
+      (void)WaitForMechanismTarget(Mechanism_IsRotatorAtTarget);
     }
   }
 #if 0
