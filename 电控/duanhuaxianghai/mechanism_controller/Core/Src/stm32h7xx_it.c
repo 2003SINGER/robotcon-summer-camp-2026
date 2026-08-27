@@ -192,8 +192,8 @@ void SysTick_Handler(void)
   AppTime_IncrementFromSysTick();
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-  xPortSysTickHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
+  xPortSysTickHandler();
 
   /* USER CODE END SysTick_IRQn 1 */
 }

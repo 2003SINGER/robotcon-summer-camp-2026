@@ -72,7 +72,9 @@ MDK-ARM/、STM32CubeIDE/、CMakeLists.txt ← 三套构建入口，共用上面�
 
 `App/` 包含机构控制、PID、CAN、FSM 与手写 FreeRTOS；无论在 CubeMX 中选择 MDK、CMake 还是 STM32CubeIDE 生成，CubeMX 都不会删除或改写该目录。`Core/Src/main.c` 和 `Core/Src/stm32h7xx_it.c` 对 App 的调用均放在 `USER CODE BEGIN/END` 区内，重生成时会保留。
 
-更新引脚、时钟或外设时，只打开根目录的 `mechanism_controller.ioc` 并 Generate Code；不要把 `App/` 中的文件复制回 `Core/`。生成后按当前要使用的入口重新构建即可。若 CubeMX 因切换工具链重写了对应工程描述文件，则重新从 CubeMX 生成该工具链项目，再保留 `App/` 目录和上述两个 USER CODE 接口；控制源码本身不需要迁回或重写。
+更新引脚、时钟或外设时，只打开根目录的 `mechanism_controller.ioc` 并 Generate Code；它固定使用 **CMake** 工具链。不要在这个主 `.ioc` 中轮换到 MDK 或 STM32CubeIDE 后再生成：CubeMX 会重写相应工程描述，MDK 可能把旧组和新组并存，造成重复编译。不要把 `App/` 中的文件复制回 `Core/`。
+
+Keil 与 CubeIDE 都是已生成、已验证的同源工程：它们直接编译根目录的 `Core/`、`Drivers/` 与 `App/`。因此改完硬件配置后的正常顺序是 **CubeMX（CMake）生成 → VS Code/CMake 构建 → Keil 或 CubeIDE 按需重新构建**，而不是让三种工具链依次从同一个 `.ioc` 生成。若有人误切到 MDK 并重生成，运行 [tools/normalize-mdk-project.ps1](tools/normalize-mdk-project.ps1) 后再打开 Keil，它会移除重复的 CubeMX 源组并保留 `App/` 组。
 
 推荐直接用 VS Code 打开本目录，按 `Ctrl+Shift+B` 并选择 **Build STM32 firmware**。它调用 [tools/build.ps1](tools/build.ps1)，再调用根目录 `CMakePresets.json` 的同一份 GNU 构建图；VS Code 不再维护第二份手写源码清单。
 
