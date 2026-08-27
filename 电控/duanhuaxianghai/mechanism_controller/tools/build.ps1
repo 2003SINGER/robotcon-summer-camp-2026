@@ -20,12 +20,14 @@ New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 $sources = @(
   'Core/Src/main.c', 'Core/Src/gpio.c', 'Core/Src/fdcan.c', 'Core/Src/usart.c',
   'Core/Src/stm32h7xx_it.c', 'Core/Src/stm32h7xx_hal_msp.c',
-  'Core/Src/system_stm32h7xx.c', 'Core/Src/app_tasks.c',
-  'Core/Src/command_mailbox.c', 'Core/Src/can_bus.c', 'Core/Src/mechanism.c',
-  'Core/Src/motor.c', 'Core/Src/pid.c', 'Core/Src/robot_fsm.c', 'Core/Src/tuning.c',
-  'Middlewares/FreeRTOS/Source/tasks.c', 'Middlewares/FreeRTOS/Source/queue.c',
-  'Middlewares/FreeRTOS/Source/list.c',
-  'Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c',
+  'Core/Src/system_stm32h7xx.c', 'Core/Src/syscalls.c', 'Core/Src/sysmem.c',
+  'Core/Src/tim.c',
+  'App/Src/app_tasks.c', 'App/Src/command_mailbox.c',
+  'App/Src/can_bus.c', 'App/Src/mechanism.c',
+  'App/Src/motor.c', 'App/Src/pid.c', 'App/Src/robot_fsm.c', 'App/Src/tuning.c',
+  'App/ThirdParty/FreeRTOS/Source/tasks.c', 'App/ThirdParty/FreeRTOS/Source/queue.c',
+  'App/ThirdParty/FreeRTOS/Source/list.c',
+  'App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c',
@@ -41,15 +43,17 @@ $sources = @(
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c',
+  'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c',
+  'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim_ex.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c',
   'Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c',
   'Core/Startup/startup_stm32h723xx.s'
 ) | ForEach-Object { Join-Path $projectRoot $_ }
 
 $includeDirectories = @(
-  'Core/Inc', 'Drivers/STM32H7xx_HAL_Driver/Inc', 'Drivers/STM32H7xx_HAL_Driver/Inc/Legacy',
+  'Core/Inc', 'App/Inc', 'Drivers/STM32H7xx_HAL_Driver/Inc', 'Drivers/STM32H7xx_HAL_Driver/Inc/Legacy',
   'Drivers/CMSIS/Device/ST/STM32H7xx/Include', 'Drivers/CMSIS/Include',
-  'Middlewares/FreeRTOS/Source/include', 'Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F'
+  'App/ThirdParty/FreeRTOS/Source/include', 'App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F'
 ) | ForEach-Object { '-I' + (Join-Path $projectRoot $_) }
 
 $flags = @('-mcpu=cortex-m7', '-mthumb', '-mfpu=fpv5-d16', '-mfloat-abi=hard',
