@@ -51,6 +51,8 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 
 CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。系统时钟为 25 MHz HSE → 500 MHz Cortex、250 MHz HCLK、125 MHz FDCAN。
 
+FDCAN2 已完成芯片配置（PB12 RX / PB13 TX、1 Mbps、Message RAM Offset=1，与 FDCAN1 的 0 分区），规划为机构板与底盘/气路板的板间总线；当前 `can_bus.c` 尚未接入 CAN2 收发，接入前不要在 CAN2 上发帧。详见 [CubeMX配置.md](CubeMX配置.md)。
+
 首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
 - `g_can_bus_diagnostics.rx_frame_count`：是否真的收到总线帧；
@@ -94,7 +96,7 @@ Keil 工程入口是 [MDK-ARM/mechanism_controller.uvprojx](MDK-ARM/mechanism_co
 
 ### Z 轴台架模式
 
-当前 `board_config.h` 的 `Z_AXIS_BENCH_MODE=1`：仅 Z 轴 C610（ID 3 / 反馈 `0x203`）需要在线，其他三个电机槽位保持零电流。烧录、上电后仍是 `DISARMED`，不会自动运动。连接 ST-Link 并暂停/继续运行后，在 Watch 中修改：
+`board_config.h` 的三个 bench 模式（`Z_AXIS_BENCH_MODE` / `LOADER_BENCH_MODE` / `ROTATOR_BENCH_MODE`）当前均为 `0`：整机模式，四电机闭环。单轴台架调试时把对应宏改为 `1` 重新构建：仅该轴需要在线，其余电机槽位保持零电流。烧录、上电后仍是 `DISARMED`，不会自动运动。连接 ST-Link 并暂停/继续运行后，在 Watch 中修改：
 
 | Watch 变量 | 填入值 |
 | --- | --- |
@@ -119,8 +121,8 @@ PID 使用“测量值微分 + 一阶低通滤波”，避免设定值突变给 
 
 ## 暂不实现的待办
 
-- **FDCAN2 跨板通信**：后续将 FDCAN2 用作机构板与底盘/气动等外部控制板的独立总线；需要先完成 Message RAM 分区、收发器与线束接入，再把消息解析接到命令邮箱。
-- **流程到位联锁**：比赛 FSM 的每一步不能只按固定延时转场。涉及吸盘的步骤应同时等待“吸盘状态确认”和对应电机的 `Mechanism_Is...AtTarget()`；两者任一超时应进入可诊断故障，而非继续下一步。
+- **FDCAN2 软件接入**：芯片配置已完成（引脚/时序/Message RAM 分区，见上文）。剩余工作：收发器与线束接入、滤波器与中断绑定、把消息解析接到命令邮箱；它必须保持与 FDCAN1 电机总线完全分离。
+- **吸附确认联锁**：流程到位已改为“真到位才转场”（`WaitForMechanismTarget()` + 每轴独立的到位资格判定：轨迹完成 + 位置/速度死带持续 120–180 ms，参数在 `tuning.c` 的 `target_settle_time_ms`）。涉及吸盘的步骤还需同时等待“吸盘状态确认”事件；两者任一超时应进入可诊断故障。
 
 上机顺序：确认 ID/方向 → 先用很低限流验证编码器方向 → 调速度环 P/I → 再调位置环 P → 最后测重力前馈、速度/加速度约束和到位容差。默认 `kd=0`；有明确的高频抖动或制动不足证据后，才逐步启用 D 和滤波时间常数。
 
