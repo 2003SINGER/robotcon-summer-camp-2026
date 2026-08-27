@@ -34,7 +34,12 @@
 #define configSUPPORT_STATIC_ALLOCATION          1
 #define configSUPPORT_DYNAMIC_ALLOCATION         0
 
-#define configPRIO_BITS                          __NVIC_PRIO_BITS
+/*
+ * Keep this a plain assembler-safe literal.  The RVDS FreeRTOS port expands
+ * configMAX_SYSCALL_INTERRUPT_PRIORITY inside an __asm block; STM32H7's
+ * __NVIC_PRIO_BITS is 4U, and ARMCC5's assembler does not accept the U suffix.
+ */
+#define configPRIO_BITS                          4
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY  15
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 #define configKERNEL_INTERRUPT_PRIORITY          (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))

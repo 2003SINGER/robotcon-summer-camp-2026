@@ -26,6 +26,12 @@ desktop.ini
 *.uvguix.*
 *.uvoptx
 
+# Per-user Keil debugger/RTE cache; the portable .uvprojx and startup file remain tracked.
+**/MDK-ARM/DebugConfig/
+**/MDK-ARM/RTE/
+**/MDK-ARM/*.scvd
+**/MDK-ARM/*.lst
+
 # STM32CubeIDE / Keil 构建目录；工程配置和源文件保留。
 **/Debug/
 **/Release/

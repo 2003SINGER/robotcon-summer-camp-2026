@@ -68,6 +68,10 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 `CMakePresets.json` 仍保留给 CLion，但本机 CubeCLT 的 CMake 首次裸机探测会异常退出；当前上板与日常开发以 VS Code 任务为准。
 
+### Keil MDK（队友可直接打开）
+
+Keil 工程入口是 [MDK-ARM/mechanism_controller.uvprojx](MDK-ARM/mechanism_controller.uvprojx)。它与 CMake 共用同一份 `Core/`、`Drivers/`、`Middlewares/` 源码；不要把代码复制进 MDK 文件夹。用 µVision 打开后选择 `mechanism_controller` target，按 `F7` 构建、`F8` 下载。该工程使用 ARM Compiler 5 的 FreeRTOS RVDS 端口；本地编译产物均已忽略，不应提交。
+
 > CubeMX 重生成警示：`stm32h7xx_it.c` 的 `SysTick_Handler()` 必须保留 USER CODE 区中的 `AppTime_IncrementFromSysTick()`，以及后续的 `HAL_IncTick()`、`xPortSysTickHandler()` 调用；丢失后超时和轨迹时基会静默失准。
 
 用于调试时，安装 VS Code 的 **Cortex-Debug** 扩展，连接 ST-Link 的 SWDIO、SWCLK、GND、3.3V 后按 `F5` 选择 **Debug STM32H723 via ST-Link**。不需要 USB：先运行几秒再暂停，在 Watch 中加入 `g_can_bus_diagnostics` 查看原始 CAN 帧和 ID，加入 `g_mechanism_telemetry` 查看四台电机已解码的总编码器、转速、电流、目标与 PID 状态。USB/串口只在后续需要 VOFA 不停机连续画波形时再接。
