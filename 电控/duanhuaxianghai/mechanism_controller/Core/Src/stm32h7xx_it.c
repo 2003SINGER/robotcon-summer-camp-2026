@@ -24,8 +24,11 @@
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "app_tasks.h"
-void vPortSVCHandler(void);
-void xPortPendSVHandler(void);
+/* The FreeRTOS port exports the real vector names SVC_Handler/PendSV_Handler
+ * as naked functions.  Rename CubeMX's generated placeholders in this
+ * translation unit, while the startup vector resolves the port's symbols. */
+#define SVC_Handler CubeMX_SVC_Handler
+#define PendSV_Handler CubeMX_PendSV_Handler
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -150,10 +153,13 @@ void UsageFault_Handler(void)
 void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
-  vPortSVCHandler();
+  /* FreeRTOS exports SVC_Handler itself as a naked assembly routine.  Keep
+   * CubeMX's generated wrapper excluded; a normal C call would add a stack
+   * frame before the port restores the first task context. */
+#if 0
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
-
+#endif
   /* USER CODE END SVCall_IRQn 1 */
 }
 
@@ -176,10 +182,11 @@ void DebugMon_Handler(void)
 void PendSV_Handler(void)
 {
   /* USER CODE BEGIN PendSV_IRQn 0 */
-  xPortPendSVHandler();
+  /* See SVC_Handler: PendSV must also be a direct FreeRTOS naked handler. */
+#if 0
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
-
+#endif
   /* USER CODE END PendSV_IRQn 1 */
 }
 

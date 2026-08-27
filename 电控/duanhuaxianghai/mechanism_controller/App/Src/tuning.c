@@ -61,9 +61,9 @@
  * immediately after crossing target instead of waiting for stored I output. */
 /* Known-good empty-axis bench baseline: responsive return with no unstable
  * filter phase lag added to the GM6020 speed feedback path. */
-#define GM6020_POSITION_PID POSITION_PID(2.00f, 120.0f)
+#define GM6020_POSITION_PID POSITION_PID(1.00f, 120.0f)
 #define GM6020_VELOCITY_PID \
-  PID_CONFIG(100.0f, 10.0f, 0.0f, 0.005f, 50.0f, GM6020_VOLTAGE_LIMIT_MV)
+  PID_CONFIG(100.0f, 5.0f, 0.0f, 0.005f, 50.0f, GM6020_VOLTAGE_LIMIT_MV)
 
 /*
  * The only source-edit tuning table. CAN IDs and signs are boot-time

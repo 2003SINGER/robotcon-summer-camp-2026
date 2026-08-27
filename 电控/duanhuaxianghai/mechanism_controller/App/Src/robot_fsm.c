@@ -7,24 +7,24 @@
 
 /* Competition-flow positions are local to this state machine. They are
  * relative to the encoder origin captured when the mechanism is armed. */
-#define FSM_LOADER_UPPER_RETRACTED_CM  0.0f
-#define FSM_LOADER_LOWER_RETRACTED_CM  0.0f
+#define FSM_LOADER_UPPER_RETRACTED_CM 0.0f
+#define FSM_LOADER_LOWER_RETRACTED_CM 0.0f
 /* These preserve the original xuke targets after the measured per-screw
  * calibration: old A=-8192*20*38 -> 39.22 cm; old B=-8192*20*35 -> 34.98 cm. */
-#define FSM_LOADER_UPPER_PICK_CM       39.22f
-#define FSM_LOADER_LOWER_PICK_CM       34.98f
+#define FSM_LOADER_UPPER_PICK_CM 39.22f
+#define FSM_LOADER_LOWER_PICK_CM 34.98f
 
 /* Current bench-sequence references: verify each value before it is used by
  * a competition state. */
-#define FSM_LIFT_HOME_COUNTS           0.0f
-#define FSM_LIFT_REFERENCE_1_COUNTS    (8192.0f * 123.2f)
-#define FSM_LIFT_REFERENCE_2_COUNTS    (8192.0f * (123.2f + 81.8f))
-#define FSM_LIFT_REFERENCE_3_COUNTS    (8192.0f * 123.2f)
-#define FSM_LIFT_REFERENCE_4_COUNTS    (8192.0f * (123.2f - 72.0f))
-#define FSM_LIFT_REFERENCE_5_COUNTS    (8192.0f * (123.2f - 72.0f + 108.0f))
+#define FSM_LIFT_HOME_COUNTS 0.0f
+#define FSM_LIFT_REFERENCE_1_COUNTS (8192.0f * 123.2f)
+#define FSM_LIFT_REFERENCE_2_COUNTS (8192.0f * (123.2f + 81.8f))
+#define FSM_LIFT_REFERENCE_3_COUNTS (8192.0f * 123.2f)
+#define FSM_LIFT_REFERENCE_4_COUNTS (8192.0f * (123.2f - 72.0f))
+#define FSM_LIFT_REFERENCE_5_COUNTS (8192.0f * (123.2f - 72.0f + 108.0f))
 
-#define FSM_ROTATOR_HOME_DEGREES       0.0f
-#define FSM_ROTATOR_FLIPPED_DEGREES    180.0f
+#define FSM_ROTATOR_HOME_DEGREES 0.0f
+#define FSM_ROTATOR_FLIPPED_DEGREES 180.0f
 
 static RobotFsmState state;
 static bool grip_confirmed;
@@ -44,37 +44,40 @@ volatile float g_loader_bench_lower_position_cm = 0.0f;
 #if Z_AXIS_BENCH_MODE
 static void ZAxisBench_Tick(uint32_t now_ms)
 {
-  switch (g_z_axis_bench_command) {
-    case Z_AXIS_BENCH_ARM:
-      if (Mechanism_Arm(now_ms)) {
-        g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
-      }
-      /* Keep retrying until a fresh CAN feedback frame arrives.  A one-shot
-       * ARM command is awkward under SWD because halting the core can make a
-       * previously valid frame older than MOTOR_FEEDBACK_TIMEOUT_MS. */
-      return;
-    case Z_AXIS_BENCH_MOVE_TO_TARGET:
-      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(g_z_axis_bench_target_cm));
-      break;
-    case Z_AXIS_BENCH_MOVE_HOME:
-      (void)Mechanism_MoveLiftTo(0.0f);
-      break;
-    case Z_AXIS_BENCH_ESTOP:
-      Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
-      break;
-    case Z_AXIS_BENCH_CLEAR_FAULT:
-      (void)Mechanism_ClearFault();
-      break;
-    case Z_AXIS_BENCH_CAPTURE_REFERENCE:
-      if (Mechanism_ZeroLiftPosition()) {
-        g_z_axis_bench_reference_counts = 0.0f;
-      }
-      break;
-    case Z_AXIS_BENCH_APPLY_FEEDFORWARD:
-      (void)Mechanism_SetLiftFeedforwardLive(g_z_axis_bench_feedforward_current);
-      break;
-    default:
-      return;
+  switch (g_z_axis_bench_command)
+  {
+  case Z_AXIS_BENCH_ARM:
+    if (Mechanism_Arm(now_ms))
+    {
+      g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
+    }
+    /* Keep retrying until a fresh CAN feedback frame arrives.  A one-shot
+     * ARM command is awkward under SWD because halting the core can make a
+     * previously valid frame older than MOTOR_FEEDBACK_TIMEOUT_MS. */
+    return;
+  case Z_AXIS_BENCH_MOVE_TO_TARGET:
+    (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(g_z_axis_bench_target_cm));
+    break;
+  case Z_AXIS_BENCH_MOVE_HOME:
+    (void)Mechanism_MoveLiftTo(0.0f);
+    break;
+  case Z_AXIS_BENCH_ESTOP:
+    Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
+    break;
+  case Z_AXIS_BENCH_CLEAR_FAULT:
+    (void)Mechanism_ClearFault();
+    break;
+  case Z_AXIS_BENCH_CAPTURE_REFERENCE:
+    if (Mechanism_ZeroLiftPosition())
+    {
+      g_z_axis_bench_reference_counts = 0.0f;
+    }
+    break;
+  case Z_AXIS_BENCH_APPLY_FEEDFORWARD:
+    (void)Mechanism_SetLiftFeedforwardLive(g_z_axis_bench_feedforward_current);
+    break;
+  default:
+    return;
   }
   g_z_axis_bench_command = Z_AXIS_BENCH_NONE;
 }
@@ -87,28 +90,30 @@ static void LoaderBench_Tick(uint32_t now_ms)
       Mechanism_LoaderUpperCountsToCm((float)g_mechanism_telemetry[TUNING_MOTOR_LOADER_A].total_counts);
   g_loader_bench_lower_position_cm =
       Mechanism_LoaderLowerCountsToCm((float)g_mechanism_telemetry[TUNING_MOTOR_LOADER_B].total_counts);
-  switch (g_loader_bench_command) {
-    case LOADER_BENCH_ARM:
-      if (Mechanism_Arm(now_ms)) g_loader_bench_command = LOADER_BENCH_NONE;
-      return;
-    case LOADER_BENCH_MOVE_TO_TARGET:
-      (void)Mechanism_MoveLoaderBenchToCm(g_loader_bench_target_upper_cm,
-                                          g_loader_bench_target_lower_cm);
-      break;
-    case LOADER_BENCH_MOVE_HOME:
-      (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
-      break;
-    case LOADER_BENCH_ESTOP:
-      Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
-      break;
-    case LOADER_BENCH_CLEAR_FAULT:
-      (void)Mechanism_ClearFault();
-      break;
-    case LOADER_BENCH_CAPTURE_REFERENCE:
-      (void)Mechanism_ZeroLoaderPositions();
-      break;
-    default:
-      return;
+  switch (g_loader_bench_command)
+  {
+  case LOADER_BENCH_ARM:
+    if (Mechanism_Arm(now_ms))
+      g_loader_bench_command = LOADER_BENCH_NONE;
+    return;
+  case LOADER_BENCH_MOVE_TO_TARGET:
+    (void)Mechanism_MoveLoaderBenchToCm(g_loader_bench_target_upper_cm,
+                                        g_loader_bench_target_lower_cm);
+    break;
+  case LOADER_BENCH_MOVE_HOME:
+    (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
+    break;
+  case LOADER_BENCH_ESTOP:
+    Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
+    break;
+  case LOADER_BENCH_CLEAR_FAULT:
+    (void)Mechanism_ClearFault();
+    break;
+  case LOADER_BENCH_CAPTURE_REFERENCE:
+    (void)Mechanism_ZeroLoaderPositions();
+    break;
+  default:
+    return;
   }
   g_loader_bench_command = LOADER_BENCH_NONE;
 }
@@ -117,27 +122,29 @@ static void LoaderBench_Tick(uint32_t now_ms)
 #if ROTATOR_BENCH_MODE
 static void RotatorBench_Tick(uint32_t now_ms)
 {
-  switch (g_rotator_bench_command) {
-    case ROTATOR_BENCH_ARM:
-      if (Mechanism_Arm(now_ms)) g_rotator_bench_command = ROTATOR_BENCH_NONE;
-      return;
-    case ROTATOR_BENCH_MOVE_TO_TARGET:
-      (void)Mechanism_TurnRotatorTo(g_rotator_bench_target_degrees);
-      break;
-    case ROTATOR_BENCH_MOVE_HOME:
-      (void)Mechanism_TurnRotatorTo(0.0f);
-      break;
-    case ROTATOR_BENCH_ESTOP:
-      Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
-      break;
-    case ROTATOR_BENCH_CLEAR_FAULT:
-      (void)Mechanism_ClearFault();
-      break;
-    case ROTATOR_BENCH_CAPTURE_REFERENCE:
-      (void)Mechanism_ZeroRotatorPosition();
-      break;
-    default:
-      return;
+  switch (g_rotator_bench_command)
+  {
+  case ROTATOR_BENCH_ARM:
+    if (Mechanism_Arm(now_ms))
+      g_rotator_bench_command = ROTATOR_BENCH_NONE;
+    return;
+  case ROTATOR_BENCH_MOVE_TO_TARGET:
+    (void)Mechanism_TurnRotatorTo(g_rotator_bench_target_degrees);
+    break;
+  case ROTATOR_BENCH_MOVE_HOME:
+    (void)Mechanism_TurnRotatorTo(0.0f);
+    break;
+  case ROTATOR_BENCH_ESTOP:
+    Mechanism_EStop(MECHANISM_FAULT_EXTERNAL_ESTOP);
+    break;
+  case ROTATOR_BENCH_CLEAR_FAULT:
+    (void)Mechanism_ClearFault();
+    break;
+  case ROTATOR_BENCH_CAPTURE_REFERENCE:
+    (void)Mechanism_ZeroRotatorPosition();
+    break;
+  default:
+    return;
   }
   g_rotator_bench_command = ROTATOR_BENCH_NONE;
 }
@@ -151,9 +158,11 @@ void RobotFsm_Init(void)
 
 bool RobotFsm_StartRetrieve(void)
 {
-  if (state != ROBOT_FSM_IDLE || Mechanism_GetMode() != MECHANISM_MODE_READY) return false;
+  if (state != ROBOT_FSM_IDLE || Mechanism_GetMode() != MECHANISM_MODE_READY)
+    return false;
   grip_confirmed = false;
-  if (!Mechanism_MoveLoaderToCm(FSM_LOADER_UPPER_PICK_CM, FSM_LOADER_LOWER_PICK_CM)) return false;
+  if (!Mechanism_MoveLoaderToCm(FSM_LOADER_UPPER_PICK_CM, FSM_LOADER_LOWER_PICK_CM))
+    return false;
   state = ROBOT_FSM_LOADER_EXTENDING;
   return true;
 }
@@ -180,7 +189,7 @@ void RobotFsm_Tick(uint32_t now_ms)
    * (1 ms) and SafetyTask (10 ms) continue running independently.
    *
    * Basic motion commands (all targets are physical units):
-   * 
+   *
    *   Mechanism_MoveLoaderToCm(upper_cm, lower_cm);  // front screws, cm
    *   Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(z_cm)); // Z axis, cm
    *   Mechanism_TurnRotatorTo(degrees);              // flip axis, degrees
@@ -198,7 +207,42 @@ void RobotFsm_Tick(uint32_t now_ms)
    * completion and vacuum confirmation decide each transition.
    */
   {
-    
+    /* A motion API only accepts targets in READY mode.  Keep retrying ARM
+     * until the motor feedback is fresh, then execute this smoke test once. */
+    static bool smoke_test_started = false;
+    if (!smoke_test_started) {
+      if (!Mechanism_Arm(now_ms)) return;
+      smoke_test_started = true;
+
+      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+      //等z轴到位
+
+      vTaskDelay(pdMS_TO_TICKS(6000U));//吸盘吸
+
+      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
+      vTaskDelay(pdMS_TO_TICKS(4000U));//z轴到位
+
+      (void)Mechanism_TurnRotatorTo(180.0f);
+      vTaskDelay(pdMS_TO_TICKS(6000U));//旋转到位
+      
+      
+      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+      vTaskDelay(pdMS_TO_TICKS(3000U));//吸盘释放
+
+      /* Loader zero was calibrated at its front position.  The lower screw
+       * therefore retracts toward -20 cm in this temporary sequence. */
+      (void)Mechanism_MoveLoaderBenchToCm(15.0f, 25.0f);
+      vTaskDelay(pdMS_TO_TICKS(3000U));
+
+      (void)Mechanism_MoveLoaderBenchToCm(1.0f, 1.0f);
+      vTaskDelay(pdMS_TO_TICKS(3000U));
+
+      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(0.0f));
+      vTaskDelay(pdMS_TO_TICKS(3000U));
+      
+      (void)Mechanism_TurnRotatorTo(0.0f);
+      vTaskDelay(pdMS_TO_TICKS(1000U));
+    }
   }
 #if 0
   RobotCommand command;

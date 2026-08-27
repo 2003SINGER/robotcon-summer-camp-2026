@@ -115,6 +115,8 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t notificatio
       for (TuningMotorId id = TUNING_MOTOR_LOADER_A; id < TUNING_MOTOR_COUNT; ++id) {
         if ((uint16_t)header.Identifier == Tuning_GetMotorProfile(id)->motor.feedback_id) {
           known = true;
+          ++g_can_bus_diagnostics.motor_feedback_frame_count[id];
+          g_can_bus_diagnostics.motor_last_feedback_ms[id] = HAL_GetTick();
           break;
         }
       }

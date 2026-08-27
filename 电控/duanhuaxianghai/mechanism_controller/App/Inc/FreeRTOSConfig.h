@@ -45,8 +45,14 @@
 #define configKERNEL_INTERRUPT_PRIORITY          (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-/* CubeMX owns the vector entry points.  The protected blocks in
- * stm32h7xx_it.c call the portable FreeRTOS handlers below. */
+/* The SVC and PendSV FreeRTOS handlers are naked assembly routines.  They
+ * must be the vector entries themselves: calling either one through a normal
+ * CubeMX C wrapper corrupts the exception stack on the first task switch. */
+#define vPortSVCHandler                       SVC_Handler
+#define xPortPendSVHandler                    PendSV_Handler
+
+/* SysTick is an ordinary C handler and remains called from CubeMX's protected
+ * SysTick block so application time and HAL time advance alongside the RTOS. */
 
 #define INCLUDE_vTaskPrioritySet                 0
 #define INCLUDE_uxTaskPriorityGet                0

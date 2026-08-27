@@ -8,6 +8,12 @@ typedef struct {
   uint32_t rx_frame_count;
   uint32_t rx_unknown_id_count;
   uint32_t tx_drop_count;
+  /* Index follows TuningMotorId: 0=loader upper (0x201), 1=loader lower
+   * (0x202), 2=lift (0x203), 3=rotator (0x206).  These deliberately count
+   * raw received frames rather than "fresh" status, so SWD can identify a
+   * missing CAN branch or wrong ESC ID without the ARM gate hiding it. */
+  uint32_t motor_feedback_frame_count[4];
+  uint32_t motor_last_feedback_ms[4];
   uint16_t last_identifier;
   uint8_t last_data[8];
   uint32_t last_rx_ms;
