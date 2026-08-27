@@ -4,15 +4,17 @@
     {
       "name": "STM32H723",
       "compilerPath": "E:/STM32CubeCLT_1.21.0/GNU-tools-for-STM32/bin/arm-none-eabi-gcc.exe",
+      "compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json",
       "cStandard": "c11",
       "includePath": [
         "${workspaceFolder}/Core/Inc",
+        "${workspaceFolder}/App/Inc",
         "${workspaceFolder}/Drivers/STM32H7xx_HAL_Driver/Inc",
         "${workspaceFolder}/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy",
         "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32H7xx/Include",
         "${workspaceFolder}/Drivers/CMSIS/Include",
-        "${workspaceFolder}/Middlewares/FreeRTOS/Source/include",
-        "${workspaceFolder}/Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F"
+        "${workspaceFolder}/App/ThirdParty/FreeRTOS/Source/include",
+        "${workspaceFolder}/App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F"
       ],
       "defines": [
         "STM32H723xx",
