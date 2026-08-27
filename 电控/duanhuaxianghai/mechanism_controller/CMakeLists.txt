@@ -1,72 +1,81 @@
 cmake_minimum_required(VERSION 3.22)
-project(mechanism_controller C ASM)
 
-set(MCU_FLAGS -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard)
-set(COMMON_FLAGS ${MCU_FLAGS} -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-parameter)
+#
+# This file is generated only once,
+# and is not re-generated if converter is called multiple times.
+#
+# User is free to modify the file as much as necessary
+#
 
-add_executable(${PROJECT_NAME}.elf
-  Core/Src/main.c
-  Core/Src/gpio.c
-  Core/Src/fdcan.c
-  Core/Src/usart.c
-  Core/Src/stm32h7xx_it.c
-  Core/Src/stm32h7xx_hal_msp.c
-  Core/Src/system_stm32h7xx.c
-  Core/Src/app_tasks.c
-  Core/Src/command_mailbox.c
-  Core/Src/can_bus.c
-  Core/Src/mechanism.c
-  Core/Src/motor.c
-  Core/Src/pid.c
-  Core/Src/robot_fsm.c
-  Core/Src/tuning.c
-  Middlewares/FreeRTOS/Source/tasks.c
-  Middlewares/FreeRTOS/Source/queue.c
-  Middlewares/FreeRTOS/Source/list.c
-  Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_exti.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_fdcan.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_flash_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_hsem.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_mdma.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
-  Core/Startup/startup_stm32h723xx.s
+# Setup compiler settings
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
+
+
+# Define the build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+# Set the project name
+set(CMAKE_PROJECT_NAME mechanism_controller)
+
+# Enable compile command to ease indexing with e.g. clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
+# Core project settings
+project(${CMAKE_PROJECT_NAME})
+message("Build type: " ${CMAKE_BUILD_TYPE})
+
+# Enable CMake support for ASM and C languages
+enable_language(C ASM)
+
+# Create an executable object type
+add_executable(${CMAKE_PROJECT_NAME})
+
+# Add STM32CubeMX generated sources
+add_subdirectory(cmake/stm32cubemx)
+
+# Link directories setup
+target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user defined library search paths
 )
 
-target_compile_definitions(${PROJECT_NAME}.elf PRIVATE STM32H723xx USE_HAL_DRIVER USE_PWR_LDO_SUPPLY)
-target_compile_options(${PROJECT_NAME}.elf PRIVATE ${COMMON_FLAGS})
-target_include_directories(${PROJECT_NAME}.elf PRIVATE
-  Core/Inc
-  Drivers/STM32H7xx_HAL_Driver/Inc
-  Drivers/STM32H7xx_HAL_Driver/Inc/Legacy
-  Drivers/CMSIS/Device/ST/STM32H7xx/Include
-  Drivers/CMSIS/Include
-  Middlewares/FreeRTOS/Source/include
-  Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM4F
-)
-target_link_options(${PROJECT_NAME}.elf PRIVATE
-  ${MCU_FLAGS}
-  -T${CMAKE_CURRENT_SOURCE_DIR}/STM32H723ZGTX_FLASH.ld
-  -Wl,--gc-sections
-  -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.map
-  --specs=nano.specs
-  --specs=nosys.specs
+# Add sources to executable
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    App/Src/app_tasks.c
+    App/Src/can_bus.c
+    App/Src/command_mailbox.c
+    App/Src/mechanism.c
+    App/Src/motor.c
+    App/Src/pid.c
+    App/Src/robot_fsm.c
+    App/Src/tuning.c
+    App/ThirdParty/FreeRTOS/Source/tasks.c
+    App/ThirdParty/FreeRTOS/Source/queue.c
+    App/ThirdParty/FreeRTOS/Source/list.c
+    App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
 )
 
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
-  COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
-  COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}.elf>
-  VERBATIM
+# Add include paths
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+    App/Inc
+    App/ThirdParty/FreeRTOS/Source/include
+    App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F
+)
+
+# Add project symbols (macros)
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+    # Add user defined symbols
+)
+
+# Remove wrong libob.a library dependency when using cpp files
+list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
+
+# Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    stm32cubemx
+
+    # Add user defined libraries
 )

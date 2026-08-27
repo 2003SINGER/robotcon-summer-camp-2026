@@ -57,6 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define GM6020_ENABLE_Pin GPIO_PIN_4
+#define GM6020_ENABLE_GPIO_Port GPIOG
 
 /* USER CODE BEGIN Private defines */
 

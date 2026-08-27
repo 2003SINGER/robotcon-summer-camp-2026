@@ -41,17 +41,19 @@
 */
 void MX_GPIO_Init(void)
 {
+
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /* Keep the interface disabled during reset; main enables it after FDCAN is
-   * initialized.  The old GM6020-only project uses the same PG4 sequence. */
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GM6020_ENABLE_GPIO_Port, GM6020_ENABLE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : GM6020_ENABLE_Pin */
   GPIO_InitStruct.Pin = GM6020_ENABLE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

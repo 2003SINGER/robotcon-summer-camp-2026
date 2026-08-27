@@ -45,8 +45,8 @@
 #define configKERNEL_INTERRUPT_PRIORITY          (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-#define vPortSVCHandler                          SVC_Handler
-#define xPortPendSVHandler                       PendSV_Handler
+/* CubeMX owns the vector entry points.  The protected blocks in
+ * stm32h7xx_it.c call the portable FreeRTOS handlers below. */
 
 #define INCLUDE_vTaskPrioritySet                 0
 #define INCLUDE_uxTaskPriorityGet                0

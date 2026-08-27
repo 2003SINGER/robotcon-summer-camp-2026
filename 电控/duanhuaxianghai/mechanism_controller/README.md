@@ -37,7 +37,7 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 | `SET_GRIP_CONFIRMED` | 写入吸附成功/失败状态。 |
 | `RESET_SEQUENCE` | 复位流程；故障仍须先显式清除。 |
 
-硬件与控制参数集中在 `Core/Src/tuning.c`：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差以及最大速度/加速度。比赛动作的伸缩距离、各段 Z 轴高度和翻转角度集中在 `Core/Src/robot_fsm.c` 顶部。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈。
+硬件与控制参数集中在 `App/Src/tuning.c`：四台电机的 CAN ID、正反方向、电流上限、双环 PID、重力前馈、到位容差以及最大速度/加速度。比赛动作的伸缩距离、各段 Z 轴高度和翻转角度集中在 `App/Src/robot_fsm.c` 顶部。`mechanism.c` 只处理机构状态与目标，`can_bus.c` 只处理 CAN 打包/反馈。
 
 上电后处于 `DISARMED`；没有任何自动翻转、抬升或伸缩，也不会主动在 CAN1 发送电流帧。上层通信接入后，必须通过命令邮箱请求 `ARM`，并且四台电机均已收到新反馈，才会进入 `READY`。反馈超过 20 ms 未更新、CAN 发送连续异常、软行程越界、动作超时或持续堵转都会切到锁存故障并发送零电流；调用 `Mechanism_ClearFault()` 后才可重新使能。
 
@@ -62,6 +62,18 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 ## 构建与烧录
 
+### 目录边界与 CubeMX 重生成
+
+```text
+Core/、Drivers/、cmake/stm32cubemx/  ← CubeMX 生成与维护
+App/                                ← 机构控制代码，永不由 CubeMX 生成
+MDK-ARM/、STM32CubeIDE/、CMakeLists.txt ← 三套构建入口，共用上面两层
+```
+
+`App/` 包含机构控制、PID、CAN、FSM 与手写 FreeRTOS；无论在 CubeMX 中选择 MDK、CMake 还是 STM32CubeIDE 生成，CubeMX 都不会删除或改写该目录。`Core/Src/main.c` 和 `Core/Src/stm32h7xx_it.c` 对 App 的调用均放在 `USER CODE BEGIN/END` 区内，重生成时会保留。
+
+更新引脚、时钟或外设时，只打开根目录的 `mechanism_controller.ioc` 并 Generate Code；不要把 `App/` 中的文件复制回 `Core/`。生成后按当前要使用的入口重新构建即可。若 CubeMX 因切换工具链重写了对应工程描述文件，则重新从 CubeMX 生成该工具链项目，再保留 `App/` 目录和上述两个 USER CODE 接口；控制源码本身不需要迁回或重写。
+
 推荐直接用 VS Code 打开本目录，按 `Ctrl+Shift+B` 并选择 **Build STM32 firmware**。它调用 [tools/build.ps1](tools/build.ps1)，直接使用已安装的 STM32CubeCLT GCC，不依赖 CMake 首次配置缓存。
 
 产物位于 `build/`：`mechanism_controller.elf/.hex/.bin`。打开 STM32CubeProgrammer，连接 ST-Link，选择 `mechanism_controller.bin`，下载地址填 `0x08000000` 后烧录。该目录不纳入 Git。
@@ -70,7 +82,7 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 ### Keil MDK（队友可直接打开）
 
-Keil 工程入口是 [MDK-ARM/mechanism_controller.uvprojx](MDK-ARM/mechanism_controller.uvprojx)。它与 CMake 共用同一份 `Core/`、`Drivers/`、`Middlewares/` 源码；不要把代码复制进 MDK 文件夹。用 µVision 打开后选择 `mechanism_controller` target，按 `F7` 构建、`F8` 下载。该工程使用 ARM Compiler 5 的 FreeRTOS RVDS 端口；本地编译产物均已忽略，不应提交。
+Keil 工程入口是 [MDK-ARM/mechanism_controller.uvprojx](MDK-ARM/mechanism_controller.uvprojx)。它与 CMake、CubeIDE 共用 `Core/`、`Drivers/` 和 `App/`；不要把代码复制进 MDK 文件夹。用 µVision 打开后选择 `mechanism_controller` target，按 `F7` 构建、`F8` 下载。该工程使用 ARM Compiler 5 的 FreeRTOS RVDS 端口；本地编译产物均已忽略，不应提交。
 
 > CubeMX 重生成警示：`stm32h7xx_it.c` 的 `SysTick_Handler()` 必须保留 USER CODE 区中的 `AppTime_IncrementFromSysTick()`，以及后续的 `HAL_IncTick()`、`xPortSysTickHandler()` 调用；丢失后超时和轨迹时基会静默失准。
 
@@ -89,7 +101,7 @@ Keil 工程入口是 [MDK-ARM/mechanism_controller.uvprojx](MDK-ARM/mechanism_co
 
 台架模式将 Z 轴电流上限临时降为 `800`，前馈默认为 0。完成台架验证后必须把 `Z_AXIS_BENCH_MODE` 改回 `0`，再接入完整四电机机构。
 
-日常默认参数只改 [Core/Src/tuning.c](Core/Src/tuning.c)，随后重新构建、刷写：
+日常默认参数只改 [App/Src/tuning.c](App/Src/tuning.c)，随后重新构建、刷写：
 
 - `motor_profiles`：CAN ID、反馈/输出方向、限流、位置/速度 PID、重力前馈和到位容差；
 - `robot_fsm.c` 顶部的 `FSM_*` 宏：每个比赛动作的伸缩目标、Z 轴高度、翻转角度；

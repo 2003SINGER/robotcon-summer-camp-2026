@@ -1,47 +1,66 @@
-/*
- * Mechanism controller: STM32H723ZGT6, FDCAN1, FreeRTOS.
- *
- * The board starts disarmed.  Creating the scheduler must never cause a
- * lift, rotator or loader motion; commands are accepted only after feedback
- * is fresh and Mechanism_Arm() has been requested by the upper-level link.
- */
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fdcan.h"
-#include "gpio.h"
+#include "tim.h"
 #include "usart.h"
+#include "gpio.h"
 
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "app_tasks.h"
 #include "can_bus.h"
 #include "mechanism.h"
+/* USER CODE END Includes */
 
+/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
 
 int main(void)
 {
+  /* USER CODE BEGIN 1 */
+  /* USER CODE END 1 */
+
+  /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
   HAL_Init();
   SystemClock_Config();
 
+  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_FDCAN1_Init();
+  MX_TIM2_Init();
   MX_USART3_UART_Init();
-  /* Required by the board's known-good GM6020 firmware. */
+  /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(GM6020_ENABLE_GPIO_Port, GM6020_ENABLE_Pin, GPIO_PIN_SET);
   Mechanism_Init();
   CanBus_Init();
-
   if (!AppTasks_Create()) {
     Mechanism_EStop(MECHANISM_FAULT_SCHEDULER);
-    while (1) { }
+    Error_Handler();
   }
   vTaskStartScheduler();
-
-  /* No task should return here.  Stay in a safe fault state if it does. */
   Mechanism_EStop(MECHANISM_FAULT_SCHEDULER);
-  while (1) { }
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
 }
 
 void SystemClock_Config(void)
@@ -53,8 +72,6 @@ void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
   while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) { }
 
-  /* Board HSE is 25 MHz.  Keep this configuration synchronized with the
-   * mechanism-board projects: 500 MHz core, 250 MHz HCLK, 125 MHz FDCAN. */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -66,6 +83,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
@@ -84,6 +102,9 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 }
+
+/* USER CODE BEGIN 4 */
+/* USER CODE END 4 */
 
 static void MPU_Config(void)
 {
@@ -106,7 +127,19 @@ static void MPU_Config(void)
 
 void Error_Handler(void)
 {
+  /* USER CODE BEGIN Error_Handler_Debug */
   Mechanism_EStop(MECHANISM_FAULT_HAL);
   __disable_irq();
   while (1) { }
+  /* USER CODE END Error_Handler_Debug */
 }
+
+#ifdef USE_FULL_ASSERT
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  (void)file;
+  (void)line;
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

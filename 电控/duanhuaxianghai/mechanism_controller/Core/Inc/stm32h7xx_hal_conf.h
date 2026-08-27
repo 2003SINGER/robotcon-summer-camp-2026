@@ -36,7 +36,6 @@
 
   /* #define HAL_ADC_MODULE_ENABLED   */
 #define HAL_FDCAN_MODULE_ENABLED
-#define HAL_UART_MODULE_ENABLED
 /* #define HAL_FMAC_MODULE_ENABLED   */
 /* #define HAL_CEC_MODULE_ENABLED   */
 /* #define HAL_COMP_MODULE_ENABLED   */
@@ -75,6 +74,8 @@
 /* #define HAL_SPDIFRX_MODULE_ENABLED   */
 /* #define HAL_SPI_MODULE_ENABLED   */
 /* #define HAL_SWPMI_MODULE_ENABLED   */
+#define HAL_TIM_MODULE_ENABLED
+#define HAL_UART_MODULE_ENABLED
 /* #define HAL_USART_MODULE_ENABLED   */
 /* #define HAL_IRDA_MODULE_ENABLED   */
 /* #define HAL_SMARTCARD_MODULE_ENABLED   */
@@ -94,6 +95,7 @@
 #define HAL_FLASH_MODULE_ENABLED
 #define HAL_EXTI_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
+#define HAL_I2C_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
 #define HAL_HSEM_MODULE_ENABLED
 
@@ -104,7 +106,7 @@
   *        (when HSE is used as system clock source, directly or through the PLL).
   */
 #if !defined  (HSE_VALUE)
-#define HSE_VALUE    (25000000UL) /*!< Value of the external oscillator in Hz */
+#define HSE_VALUE    (25000000UL) /*!< Value of the External oscillator in Hz : FPGA case fixed to 60MHZ */
 #endif /* HSE_VALUE */
 
 #if !defined  (HSE_STARTUP_TIMEOUT)
