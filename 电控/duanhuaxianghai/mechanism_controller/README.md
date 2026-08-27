@@ -74,11 +74,11 @@ MDK-ARM/、STM32CubeIDE/、CMakeLists.txt ← 三套构建入口，共用上面�
 
 更新引脚、时钟或外设时，只打开根目录的 `mechanism_controller.ioc` 并 Generate Code；不要把 `App/` 中的文件复制回 `Core/`。生成后按当前要使用的入口重新构建即可。若 CubeMX 因切换工具链重写了对应工程描述文件，则重新从 CubeMX 生成该工具链项目，再保留 `App/` 目录和上述两个 USER CODE 接口；控制源码本身不需要迁回或重写。
 
-推荐直接用 VS Code 打开本目录，按 `Ctrl+Shift+B` 并选择 **Build STM32 firmware**。它调用 [tools/build.ps1](tools/build.ps1)，直接使用已安装的 STM32CubeCLT GCC，不依赖 CMake 首次配置缓存。
+推荐直接用 VS Code 打开本目录，按 `Ctrl+Shift+B` 并选择 **Build STM32 firmware**。它调用 [tools/build.ps1](tools/build.ps1)，再调用根目录 `CMakePresets.json` 的同一份 GNU 构建图；VS Code 不再维护第二份手写源码清单。
 
-产物位于 `build/`：`mechanism_controller.elf/.hex/.bin`。打开 STM32CubeProgrammer，连接 ST-Link，选择 `mechanism_controller.bin`，下载地址填 `0x08000000` 后烧录。该目录不纳入 Git。
+产物位于 `build/Debug/`：`mechanism_controller.elf/.hex/.bin`。打开 STM32CubeProgrammer，连接 ST-Link，选择 `mechanism_controller.bin`，下载地址填 `0x08000000` 后烧录。该目录不纳入 Git。
 
-`CMakePresets.json` 仍保留给 CLion，但本机 CubeCLT 的 CMake 首次裸机探测会异常退出；当前上板与日常开发以 VS Code 任务为准。
+CLion 可直接使用 `Debug` / `Release` CMake preset；VS Code 的构建、烧录和 Cortex-Debug 也都指向同一套 `build/<preset>/` 产物。
 
 ### Keil MDK（队友可直接打开）
 

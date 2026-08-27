@@ -12,7 +12,7 @@
       "searchDir": ["E:\\openocd-v0.12.0-i686-w64-mingw32\\share\\openocd\\scripts"],
       "configFiles": ["interface/stlink.cfg", "target/stm32h7x.cfg"],
       "openOCDLaunchCommands": ["adapter speed 100"],
-      "executable": "${workspaceFolder}/build/mechanism_controller.elf",
+      "executable": "${workspaceFolder}/build/Debug/mechanism_controller.elf",
       "armToolchainPath": "E:\\STM32CubeCLT_1.21.0\\GNU-tools-for-STM32\\bin",
       "runToEntryPoint": "main",
       "preLaunchTask": "Build STM32 firmware"
