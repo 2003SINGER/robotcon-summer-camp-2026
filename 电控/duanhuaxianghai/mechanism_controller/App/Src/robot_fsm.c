@@ -253,7 +253,7 @@ void RobotFsm_Tick(uint32_t now_ms)
         return;
       smoke_test_started = true;
 
-      switch ('B')
+      switch ('A')
       {
       case 'A':
 
