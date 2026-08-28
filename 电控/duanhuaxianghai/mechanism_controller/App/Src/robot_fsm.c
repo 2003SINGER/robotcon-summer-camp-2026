@@ -262,7 +262,8 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
         // 等z轴到位
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 吸盘吸
+        Valve_rotator_on();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘建立真空
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         vTaskDelay(pdMS_TO_TICKS(4000U)); // z轴到位
@@ -271,7 +272,8 @@ void RobotFsm_Tick(uint32_t now_ms)
         vTaskDelay(pdMS_TO_TICKS(6000U)); // 旋转到位
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(3000U)); // 吸盘释放
+        Valve_rotator_off();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘释放
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(3.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         vTaskDelay(pdMS_TO_TICKS(3000U));
@@ -283,12 +285,15 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLoaderToCm(39.0f, 34.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        Valve_loader_on();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // z轴吸盘吸
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手吸盘释放
+        Valve_rotator_on();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘建立真空
+        Valve_loader_off();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘释放
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         break;
@@ -299,11 +304,13 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLoaderToCm(40.0f, 35.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        Valve_loader_on();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手吸盘释放
+        Valve_loader_off();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘释放
         break;
       case 'D':
 
@@ -312,7 +319,8 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLoaderToCm(40.0f, 40.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        Valve_loader_on();
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         break;
