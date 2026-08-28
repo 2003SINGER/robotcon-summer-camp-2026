@@ -1,5 +1,4 @@
 #include "app_tasks.h"
-#include "main.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "mechanism.h"

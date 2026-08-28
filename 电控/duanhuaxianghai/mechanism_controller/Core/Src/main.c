@@ -8,7 +8,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
 #include "fdcan.h"
 #include "tim.h"
 #include "usart.h"
@@ -16,6 +15,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "app_tasks.h"
 #include "can_bus.h"
 #include "mechanism.h"
 /* USER CODE END Includes */
@@ -44,7 +46,6 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MPU_Config(void);
-void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -93,16 +94,13 @@ int main(void)
   HAL_GPIO_WritePin(GM6020_ENABLE_GPIO_Port, GM6020_ENABLE_Pin, GPIO_PIN_SET);
   Mechanism_Init();
   CanBus_Init();
+  if (!AppTasks_Create()) {
+    Mechanism_EStop(MECHANISM_FAULT_SCHEDULER);
+    Error_Handler();
+  }
+  vTaskStartScheduler();
+  Mechanism_EStop(MECHANISM_FAULT_SCHEDULER);
   /* USER CODE END 2 */
-
-  /* Init scheduler */
-  osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
