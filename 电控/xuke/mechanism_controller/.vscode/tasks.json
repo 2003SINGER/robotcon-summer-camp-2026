@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build STM32 firmware",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\tools\\build.ps1",
+        "-Configuration", "Debug"
+      ],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "Flash STM32 firmware",
+      "type": "shell",
+      "command": "E:\\STM32CubeCLT_1.21.0\\STM32CubeProgrammer\\bin\\STM32_Programmer_CLI.exe",
+      "args": [
+        "-c", "port=SWD", "mode=Normal", "reset=SWrst", "freq=100",
+        "-w", "${workspaceFolder}\\build\\mechanism_controller.bin", "0x08000000",
+        "-v", "-rst"
+      ],
+      "dependsOn": "Build STM32 firmware",
+      "dependsOrder": "sequence",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ]
+}
