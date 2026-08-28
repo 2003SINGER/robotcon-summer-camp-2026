@@ -255,6 +255,10 @@ void RobotFsm_Tick(uint32_t now_ms)
 
       switch ('B')
       {
+        case 'E':
+        
+        (void)Mechanism_MoveLoaderToCm(-30.0f, -25.0f);
+        break;
       case 'A':
 
 
@@ -266,36 +270,36 @@ void RobotFsm_Tick(uint32_t now_ms)
         vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘建立真空
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(4000U)); // z轴到位
         (void)Mechanism_TurnRotatorTo(180.0f);
         if (!WaitForMechanismTarget(Mechanism_IsRotatorAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(6000U)); // 旋转到位
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         Valve_rotator_off();
         vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘释放
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(3.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-        vTaskDelay(pdMS_TO_TICKS(3000U));
         break;
       case 'B':
 
 
         // 任务二拿取方块1
-        (void)Mechanism_MoveLoaderToCm(39.0f, 34.0f);
-        // 等手到位
+        
+        (void)Mechanism_TurnRotatorTo(0.0f);
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(9.0f));
+        (void)Mechanism_MoveLoaderToCm(39.0f, 33.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         Valve_loader_on();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
-        (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
-        // 等手到位
-        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(1000U)); // 手臂吸盘建立真空
+        (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
         Valve_rotator_on();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘建立真空
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(100U)); // 旋转吸盘建立真空
         Valve_loader_off();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘释放
-        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
+        vTaskDelay(pdMS_TO_TICKS(100U)); // 运输吸盘释放
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(65.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+      
+        (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
         break;
       case 'C':
 
