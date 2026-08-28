@@ -169,8 +169,8 @@ bool RobotFsm_StartRetrieve(void)
 
 void RobotFsm_SetExternalGripConfirmed(bool confirmed) { grip_confirmed = confirmed; }
 
-/* Only RobotFsmTask blocks here.  The 1 ms motor task and 10 ms safety task
- * remain scheduled, so target qualification and feedback safety continue. */
+/* This wait runs only in RobotFsmTask.  MotorControlTask (1 ms) and
+ * SafetyTask (10 ms) continue running while the sequence waits. */
 static bool WaitForMechanismTarget(bool (*is_at_target)(void))
 {
   while (Mechanism_GetMode() == MECHANISM_MODE_READY && !is_at_target()) {
@@ -220,39 +220,76 @@ void RobotFsm_Tick(uint32_t now_ms)
     /* A motion API only accepts targets in READY mode.  Keep retrying ARM
      * until the motor feedback is fresh, then execute this smoke test once. */
     static bool smoke_test_started = false;
-    if (!smoke_test_started) {
-      if (!Mechanism_Arm(now_ms)) return;
+    if (!smoke_test_started)
+    {
+      if (!Mechanism_Arm(now_ms))
+        return;
       smoke_test_started = true;
 
-      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
-      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+      switch ('B')
+      {
+      case 'A':
 
-      vTaskDelay(pdMS_TO_TICKS(6000U));//吸盘吸
 
-      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
-      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        // 任务一
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+        // 等z轴到位
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 吸盘吸
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(4000U)); // z轴到位
+        (void)Mechanism_TurnRotatorTo(180.0f);
+        if (!WaitForMechanismTarget(Mechanism_IsRotatorAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 旋转到位
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(3000U)); // 吸盘释放
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(3.0f));
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(3000U));
+        break;
+      case 'B':
 
-      (void)Mechanism_TurnRotatorTo(180.0f);
-      if (!WaitForMechanismTarget(Mechanism_IsRotatorAtTarget)) return;
-      
-      
-      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
-      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-      vTaskDelay(pdMS_TO_TICKS(3000U));//吸盘释放
 
-      /* Loader zero was calibrated at its front position.  The lower screw
-       * therefore retracts toward -20 cm in this temporary sequence. */
-      (void)Mechanism_MoveLoaderBenchToCm(15.0f, 25.0f);
-      if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        // 任务二拿取方块1
+        (void)Mechanism_MoveLoaderToCm(40.0f, 35.0f);
+        // 等手到位
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
+        // 等手到位
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // z轴吸盘吸
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手吸盘释放
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        break;
+      case 'C':
 
-      (void)Mechanism_MoveLoaderBenchToCm(1.0f, 1.0f);
-      if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
 
-      (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(0.0f));
-      if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-      
-      (void)Mechanism_TurnRotatorTo(0.0f);
-      (void)WaitForMechanismTarget(Mechanism_IsRotatorAtTarget);
+        // 任务二方块低
+        (void)Mechanism_MoveLoaderToCm(40.0f, 35.0f);
+        // 等手到位
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
+        // 等手到位
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手吸盘释放
+        break;
+      case 'D':
+
+
+        // 任务二方块高
+        (void)Mechanism_MoveLoaderToCm(40.0f, 40.0f);
+        // 等手到位
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸
+        (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
+        if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        break;
+      }
     }
   }
 #if 0

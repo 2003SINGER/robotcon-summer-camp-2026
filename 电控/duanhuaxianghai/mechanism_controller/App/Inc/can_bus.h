@@ -17,6 +17,10 @@ typedef struct {
   uint16_t last_identifier;
   uint8_t last_data[8];
   uint32_t last_rx_ms;
+  uint32_t chassis_rx_frame_count;
+  uint16_t chassis_last_identifier;
+  uint8_t chassis_last_data[8];
+  uint32_t chassis_last_rx_ms;
 } CanBusDiagnostics;
 
 extern volatile CanBusDiagnostics g_can_bus_diagnostics;

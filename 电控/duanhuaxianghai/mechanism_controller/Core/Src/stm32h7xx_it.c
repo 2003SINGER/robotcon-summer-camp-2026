@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
 #include "app_tasks.h"
+#include "fdcan.h"
 /* The FreeRTOS port exports the real vector names SVC_Handler/PendSV_Handler
  * as naked functions.  Rename CubeMX's generated placeholders in this
  * translation unit, while the startup vector resolves the port's symbols. */
@@ -224,6 +225,14 @@ void FDCAN1_IT0_IRQHandler(void)
   /* USER CODE BEGIN FDCAN1_IT0_IRQn 1 */
 
   /* USER CODE END FDCAN1_IT0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles FDCAN2 interrupt 0.
+  */
+void FDCAN2_IT0_IRQHandler(void)
+{
+  HAL_FDCAN_IRQHandler(&hfdcan2);
 }
 
 /**
