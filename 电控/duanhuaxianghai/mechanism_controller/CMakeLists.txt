@@ -25,7 +25,7 @@ set(CMAKE_PROJECT_NAME mechanism_controller)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 # Core project settings
-project(${CMAKE_PROJECT_NAME})
+project(${CMAKE_PROJECT_NAME} LANGUAGES C ASM)
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Enable CMake support for ASM and C languages
@@ -53,17 +53,11 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/Src/robot_fsm.c
     App/Src/tuning.c
     App/Src/valve.c
-    App/ThirdParty/FreeRTOS/Source/tasks.c
-    App/ThirdParty/FreeRTOS/Source/queue.c
-    App/ThirdParty/FreeRTOS/Source/list.c
-    App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     App/Inc
-    App/ThirdParty/FreeRTOS/Source/include
-    App/ThirdParty/FreeRTOS/Source/portable/GCC/ARM_CM4F
 )
 
 # Add project symbols (macros)
