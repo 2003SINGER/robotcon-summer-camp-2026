@@ -2,6 +2,7 @@
 #include "board_config.h"
 #include "command_mailbox.h"
 #include "mechanism.h"
+#include "valve.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -154,6 +155,7 @@ void RobotFsm_Init(void)
 {
   state = ROBOT_FSM_IDLE;
   grip_confirmed = false;
+  Valve_Init();
 }
 
 bool RobotFsm_StartRetrieve(void)
@@ -194,16 +196,41 @@ void RobotFsm_Tick(uint32_t now_ms)
   /*
    * TEMPORARY WHOLE-ROBOT INTEGRATION SCRIPT
    *
-   * Write a simple ordered test sequence below while pneumatic and chassis
-   * interfaces are absent. RobotFsmTask may use vTaskDelay(); MotorControlTask
-   * (1 ms) and SafetyTask (10 ms) continue running independently.
+   * Write a simple ordered test sequence below.  This file is only the
+   * sequence layer: it issues a target or turns a valve on/off.  The 1 ms
+   * MotorControlTask owns the nested position/velocity/current loops and CAN
+   * current commands; SafetyTask (10 ms) owns feedback safety.  Therefore a
+   * vTaskDelay() here blocks only RobotFsmTask, not motor control.
+   *
+   * Coordinate convention: after this controller powers up/reset and receives
+   * the initial encoder feedback, the current mechanical position is software
+   * zero.  Every command below is an ABSOLUTE target from that zero -- a later
+   * command for 0 cm returns to the startup reference, not "move by 0 cm".
+   * Do the initial physical placement before boot; never re-zero during a
+   * normal sequence.
    *
    * Basic motion commands (all targets are physical units):
    *
    *   Mechanism_MoveLoaderToCm(upper_cm, lower_cm);  // front screws, cm
    *   Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(z_cm)); // Z axis, cm
    *   Mechanism_TurnRotatorTo(degrees);              // flip axis, degrees
-   *   vTaskDelay(pdMS_TO_TICKS(milliseconds));       // temporary wait
+   *   Valve_loader_on();                             // transport suction on
+   *   Valve_loader_off();                            // transport suction off
+   *   Valve_rotator_on();                            // rotator suction on
+   *   Valve_rotator_off();                           // rotator suction off
+   *   Valve_pallet_on();                             // pallet cylinder on
+   *   Valve_pallet_off();                            // pallet cylinder off
+   *
+   * Prefer the qualified completion checks after a motor command.  They wait
+   * for trajectory complete + position deadband + low speed, and loader means
+   * BOTH upper and lower M2006 motors are at target:
+   *
+   *   if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+   *   if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+   *   if (!WaitForMechanismTarget(Mechanism_IsRotatorAtTarget)) return;
+   *
+   * vTaskDelay(pdMS_TO_TICKS(milliseconds)) is reserved for pneumatic settling
+   * or a temporary test delay, not as the normal proof that a motor arrived.
    *
    * Suggested temporary structure:
    *   if (Mechanism_GetMode() == MECHANISM_MODE_READY) {
@@ -213,8 +240,8 @@ void RobotFsm_Tick(uint32_t now_ms)
    *   }
    *
    * Do not call command 6 / zero-position functions during a normal sequence.
-   * Before competition, replace delays with the state machine below so actual
-   * completion and vacuum confirmation decide each transition.
+   * Before competition, replace pneumatic fixed delays with vacuum feedback and
+   * replace any remaining test delays with explicit FSM states/transitions.
    */
   {
     /* A motion API only accepts targets in READY mode.  Keep retrying ARM
@@ -253,7 +280,7 @@ void RobotFsm_Tick(uint32_t now_ms)
 
 
         // 任务二拿取方块1
-        (void)Mechanism_MoveLoaderToCm(40.0f, 35.0f);
+        (void)Mechanism_MoveLoaderToCm(39.0f, 34.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         vTaskDelay(pdMS_TO_TICKS(6000U)); // 手臂吸盘吸

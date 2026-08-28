@@ -64,6 +64,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern FDCAN_HandleTypeDef hfdcan1;
+extern FDCAN_HandleTypeDef hfdcan2;
 extern TIM_HandleTypeDef htim2;
 extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
@@ -232,7 +233,13 @@ void FDCAN1_IT0_IRQHandler(void)
   */
 void FDCAN2_IT0_IRQHandler(void)
 {
+  /* USER CODE BEGIN FDCAN2_IT0_IRQn 0 */
+
+  /* USER CODE END FDCAN2_IT0_IRQn 0 */
   HAL_FDCAN_IRQHandler(&hfdcan2);
+  /* USER CODE BEGIN FDCAN2_IT0_IRQn 1 */
+
+  /* USER CODE END FDCAN2_IT0_IRQn 1 */
 }
 
 /**

@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/Src/pid.c
     App/Src/robot_fsm.c
     App/Src/tuning.c
+    App/Src/valve.c
     App/ThirdParty/FreeRTOS/Source/tasks.c
     App/ThirdParty/FreeRTOS/Source/queue.c
     App/ThirdParty/FreeRTOS/Source/list.c
