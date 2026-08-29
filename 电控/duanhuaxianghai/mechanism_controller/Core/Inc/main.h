@@ -59,6 +59,14 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define GM6020_ENABLE_Pin GPIO_PIN_4
 #define GM6020_ENABLE_GPIO_Port GPIOG
+#define VALVE_ROTATOR_Pin GPIO_PIN_0
+#define VALVE_ROTATOR_GPIO_Port GPIOB
+#define VALVE_PALLET_Pin GPIO_PIN_1
+#define VALVE_PALLET_GPIO_Port GPIOB
+#define VALVE_LOADER_Pin GPIO_PIN_12
+#define VALVE_LOADER_GPIO_Port GPIOC
+#define VALVE_GND_Pin GPIO_PIN_2
+#define VALVE_GND_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

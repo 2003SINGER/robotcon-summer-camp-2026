@@ -42,8 +42,11 @@
 #define configPRIO_BITS                          4
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY  15
 #define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
-#define configKERNEL_INTERRUPT_PRIORITY          (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
+/* 15 << (8 - 4) = 240 and 5 << (8 - 4) = 80.  Keep these literal for
+ * ARMCC5: the RVDS port embeds configMAX_SYSCALL_INTERRUPT_PRIORITY in
+ * inline assembly, where its assembler rejects the shift expression. */
+#define configKERNEL_INTERRUPT_PRIORITY          240
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY     80
 
 /* The SVC and PendSV FreeRTOS handlers are naked assembly routines.  They
  * must be the vector entries themselves: calling either one through a normal

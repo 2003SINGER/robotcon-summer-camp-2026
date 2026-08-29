@@ -47,6 +47,8 @@ void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
@@ -54,7 +56,13 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GM6020_ENABLE_GPIO_Port, GM6020_ENABLE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, VALVE_ROTATOR_Pin|VALVE_PALLET_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(VALVE_LOADER_GPIO_Port, VALVE_LOADER_Pin, GPIO_PIN_RESET);
+
+  /* Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(VALVE_GND_GPIO_Port, VALVE_GND_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : GM6020_ENABLE_Pin */
   GPIO_InitStruct.Pin = GM6020_ENABLE_Pin;
@@ -63,12 +71,20 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GM6020_ENABLE_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB4 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_8|GPIO_PIN_9;
+  /*Configure GPIO pins : VALVE_ROTATOR_Pin VALVE_PALLET_Pin */
+  GPIO_InitStruct.Pin = VALVE_ROTATOR_Pin|VALVE_PALLET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(VALVE_ROTATOR_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : VALVE_LOADER_Pin */
+  GPIO_InitStruct.Pin = VALVE_LOADER_Pin;
+  HAL_GPIO_Init(VALVE_LOADER_GPIO_Port, &GPIO_InitStruct);
+
+  /* Configure GPIO pin : VALVE_GND_Pin */
+  GPIO_InitStruct.Pin = VALVE_GND_Pin;
+  HAL_GPIO_Init(VALVE_GND_GPIO_Port, &GPIO_InitStruct);
 
 }
 
