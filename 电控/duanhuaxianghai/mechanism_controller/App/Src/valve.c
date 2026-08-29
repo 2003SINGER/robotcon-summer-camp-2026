@@ -3,17 +3,17 @@
 
 /*
  * Pin assignment (matches the hardware wiring). Edit here if a wire moves.
- *   Valve_rotator -> PB0
- *   Valve_loader  -> PC12
- *   Valve_pallet  -> PB1
+ *   Valve_rotator -> PB8
+ *   Valve_loader  -> PB9
+ *   Valve_pallet  -> PB4
  * "on" = pin HIGH, "off" = pin LOW.
  */
-#define ROTATOR_PORT VALVE_ROTATOR_GPIO_Port
-#define ROTATOR_PIN  VALVE_ROTATOR_Pin
-#define LOADER_PORT  VALVE_LOADER_GPIO_Port
-#define LOADER_PIN   VALVE_LOADER_Pin
-#define PALLET_PORT  VALVE_PALLET_GPIO_Port
-#define PALLET_PIN   VALVE_PALLET_Pin
+#define ROTATOR_PORT GPIOB
+#define ROTATOR_PIN  GPIO_PIN_8
+#define LOADER_PORT  GPIOB
+#define LOADER_PIN   GPIO_PIN_9
+#define PALLET_PORT  GPIOB
+#define PALLET_PIN   GPIO_PIN_4
 
 void Valve_Init(void)
 {

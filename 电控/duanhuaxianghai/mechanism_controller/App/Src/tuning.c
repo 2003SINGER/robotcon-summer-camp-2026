@@ -110,13 +110,13 @@ static const MotorProfile motor_profiles[TUNING_MOTOR_COUNT] = {
 };
 
 static const MotionSafetyProfile motion_safety_profiles[TUNING_MOTOR_COUNT] = {
-  /* The front reference used in current bench work may require a 35 cm
-   * recovery move behind software zero.  Keep the measured extension limits,
-   * while allowing commanded coordinates from -35 cm through full extension. */
+  /* Mechanism_MoveLoaderToCm() negates its physical-centimetre inputs.  The
+   * current front reference therefore requires recovery coordinates down to
+   * upper=-39 cm / lower=-33 cm.  Leave 1 cm margin behind each target. */
   [TUNING_MOTOR_LOADER_A] = {true, -41.29f * LOADER_UPPER_COUNTS_PER_CM,
-                              35.0f * LOADER_UPPER_COUNTS_PER_CM, 6000U, 10, 3000, 400U},
+                              40.0f * LOADER_UPPER_COUNTS_PER_CM, 6000U, 10, 3000, 400U},
   [TUNING_MOTOR_LOADER_B] = {true, -36.98f * LOADER_LOWER_COUNTS_PER_CM,
-                              35.0f * LOADER_LOWER_COUNTS_PER_CM, 6000U, 10, 3000, 400U},
+                              34.0f * LOADER_LOWER_COUNTS_PER_CM, 6000U, 10, 3000, 400U},
   [TUNING_MOTOR_LIFT] = {true, 0.0f, ENCODER_COUNTS_PER_REVOLUTION * 220.0f, 8000U, 10, 3000, 400U},
   [TUNING_MOTOR_ROTATOR] = {false, 0.0f, 0.0f, 4000U, 5, 8000, 400U}
 };

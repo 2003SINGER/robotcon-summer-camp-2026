@@ -11,9 +11,9 @@
  * valve.c -- that is the ONLY place polarity lives.
  *
  * Pin assignment (matches the hardware wiring):
- *   Valve_rotator -> PB0  (rotating suction cup, via electronic switch)
- *   Valve_loader  -> PC12 (front/back arm suction cup, grabs blocks)
- *   Valve_pallet  -> PB1  (bottom pallet cylinder solenoid valve)
+ *   Valve_rotator -> PB8  (rotating suction cup, via electronic switch)
+ *   Valve_loader  -> PB9  (front/back arm suction cup, grabs blocks)
+ *   Valve_pallet  -> PB4  (bottom pallet cylinder solenoid valve)
  */
 void Valve_Init(void);
 

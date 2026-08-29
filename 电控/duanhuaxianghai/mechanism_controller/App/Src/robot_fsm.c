@@ -253,11 +253,11 @@ void RobotFsm_Tick(uint32_t now_ms)
         return;
       smoke_test_started = true;
 
-      switch ('B')
+      switch ('C')
       {
         case 'E':
         
-        (void)Mechanism_MoveLoaderToCm(-30.0f, -25.0f);
+        (void)Mechanism_MoveLoaderToCm(-39.0f, -33.0f);
         break;
       case 'A':
 
@@ -305,16 +305,18 @@ void RobotFsm_Tick(uint32_t now_ms)
 
 
         // 任务二方块低
-        (void)Mechanism_MoveLoaderToCm(40.0f, 35.0f);
-        // 等手到位
+        Valve_pallet_on(); 
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(65.0f));
+        (void)Mechanism_MoveLoaderToCm(39.0f, 35.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
+        
         Valve_loader_on();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
+        vTaskDelay(pdMS_TO_TICKS(1000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         Valve_loader_off();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘释放
+        vTaskDelay(pdMS_TO_TICKS(1000U)); // 运输吸盘释放
         break;
       case 'D':
 
