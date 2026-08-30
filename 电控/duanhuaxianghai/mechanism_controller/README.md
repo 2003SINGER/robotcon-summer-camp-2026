@@ -53,7 +53,7 @@ CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps
 
 FDCAN2 使用 PB12 (RX) / PB13 (TX)、1 Mbps，与 FDCAN1 的电机总线物理隔离。两路共用 FDCAN Message RAM：FDCAN1 offset 为 `0`，FDCAN2 的生成配置为 `54`，不得改成 `0` 或 `1`。当前应用层只接收标准数据帧 `0x123`：`data[0]` 为 ASCII `'A'` / `'B'` / `'C'` / `'D'` 时，由 `Chassis_OnCanFeedback()` 锁存最新命令；CAN 回调不直接调用任何 `Mechanism_Move...` API。
 
-当前比赛集成版本故意不由 CAN2 启动流程：上电后等待四台电机 CAN1 反馈新鲜，自动 Arm 并仅执行一次 `robot_fsm.c` 的 `case 'E'` 临时流程。CAN2 当前未接到底盘板；A/B/C/D 锁存只保留为板间命令预案，不参与比赛。若后续 CAN2 改为直接接轮组电机总线，必须另写轮组电机协议与控制层，不能复用 `0x123` 板间命令格式。
+当前比赛集成版本故意不由 CAN2 启动流程：上电后等待四台电机 CAN1 反馈新鲜，自动 Arm 并仅执行一次 `robot_fsm.c` 的 `case 'E'` 临时流程。比赛时机构板与底盘板之间没有板间通信；A/B/C/D 锁存只保留为板间命令预案，不参与比赛。若后续 CAN2 改为直接接轮组电机总线，必须另写轮组电机协议与控制层，不能复用 `0x123` 板间命令格式。
 
 首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
