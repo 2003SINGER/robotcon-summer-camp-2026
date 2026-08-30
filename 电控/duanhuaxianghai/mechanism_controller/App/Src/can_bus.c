@@ -1,5 +1,6 @@
 #include "can_bus.h"
 #include "board_config.h"
+#include "chassis.h"
 #include "fdcan.h"
 #include "mechanism.h"
 #include "tuning.h"
@@ -51,10 +52,8 @@ void CanBus_Init(void)
     Error_Handler();
   }
 
-  /* Chassis CAN is physically independent from the motor CAN.  Its protocol
-   * has not been frozen yet, so receive standard frames for diagnostics only.
-   * Do not interpret a payload or alter the FSM here. */
-  AddAcceptAllStandardFilter(&hfdcan2, 0U);
+  /* CAN2 is the independent chassis command bus. */
+  AddExactFilter(&hfdcan2, 0U, CHASSIS_COMMAND_CAN_ID);
   if (HAL_FDCAN_ConfigGlobalFilter(&hfdcan2, FDCAN_REJECT, FDCAN_REJECT,
                                    FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) != HAL_OK ||
       HAL_FDCAN_Start(&hfdcan2) != HAL_OK ||
@@ -125,6 +124,11 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t notificatio
         for (uint32_t index = 0U; index < sizeof(data); ++index)
           g_can_bus_diagnostics.chassis_last_data[index] = data[index];
         g_can_bus_diagnostics.chassis_last_rx_ms = HAL_GetTick();
+        if (header.IdType == FDCAN_STANDARD_ID &&
+            header.RxFrameType == FDCAN_DATA_FRAME &&
+            header.DataLength >= FDCAN_DLC_BYTES_1) {
+          Chassis_OnCanFeedback((uint16_t)header.Identifier, data);
+        }
         continue;
       }
       if (hfdcan->Instance != FDCAN1) continue;

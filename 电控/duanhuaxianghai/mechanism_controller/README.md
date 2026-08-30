@@ -5,9 +5,9 @@
 ## 运行结构
 
 ```text
-FDCAN1 ISR（只收反馈快照/总线诊断，不碰机构状态）
+FDCAN1 ISR（只收电机反馈快照/总线诊断，不碰机构状态）
         ↓
-命令邮箱（未来 CAN2/串口只投递意图，长度 1、最新命令覆盖旧命令）
+FDCAN2 ISR（只锁存底盘任务字母，不碰机构状态）
         ↓
 RobotFsmTask，20 ms：唯一的动作状态迁移与机构目标下发
         ↓
@@ -51,7 +51,9 @@ SafetyTask，10 ms：反馈超时、CAN 发送异常、任务栈余量
 
 CAN1 已同步写入 `mechanism_controller.ioc`：PA11 (RX) / PA12 (TX)、1 Mbps 时序与关闭自动重传。本工程以 `xuke`、`jiaojingwen` 与 `pengzixi` 的实际源码共同使用的 PA11/PA12 为准；xuke 的 `.ioc` 中 PB8/PB9 是旧配置，不作为依据。系统时钟为 25 MHz HSE → 500 MHz Cortex、250 MHz HCLK、125 MHz FDCAN。
 
-FDCAN2 已完成芯片配置（PB12 RX / PB13 TX、1 Mbps、Message RAM Offset=1，与 FDCAN1 的 0 分区），规划为机构板与底盘/气路板的板间总线；当前 `can_bus.c` 尚未接入 CAN2 收发，接入前不要在 CAN2 上发帧。详见 [CubeMX配置.md](CubeMX配置.md)。
+FDCAN2 使用 PB12 (RX) / PB13 (TX)、1 Mbps，与 FDCAN1 的电机总线物理隔离。两路共用 FDCAN Message RAM：FDCAN1 offset 为 `0`，FDCAN2 的生成配置为 `54`，不得改成 `0` 或 `1`。当前应用层只接收标准数据帧 `0x123`：`data[0]` 为 ASCII `'A'` / `'B'` / `'C'` / `'D'` 时，由 `Chassis_OnCanFeedback()` 锁存最新命令；CAN 回调不直接调用任何 `Mechanism_Move...` API。
+
+当前比赛集成版本故意不由 CAN2 启动流程：上电后等待四台电机 CAN1 反馈新鲜，自动 Arm 并仅执行一次 `robot_fsm.c` 的 `case 'E'` 临时流程。CAN2 的 A/B/C/D 锁存已可用于后续恢复“底盘命令选择任务”模式，但现在不会改变自动 E 的流程。
 
 首次去基地上电时，`CAN_DIAGNOSTIC_ACCEPT_ALL_STANDARD_IDS=1`，CAN1 会接收本地电机总线的全部标准帧，但仍保持 `DISARMED`。在 CLion 的 Live Watch 直接看：
 
@@ -121,11 +123,11 @@ PID 使用“测量值微分 + 一阶低通滤波”，避免设定值突变给 
 
 ## 暂不实现的待办
 
-- **FDCAN2 软件接入**：芯片配置已完成（引脚/时序/Message RAM 分区，见上文）。剩余工作：收发器与线束接入、滤波器与中断绑定、把消息解析接到命令邮箱；它必须保持与 FDCAN1 电机总线完全分离。
+- **FDCAN2 正式任务调度**：`0x123` 的 A/B/C/D 接收、过滤器、中断和命令锁存已完成；比赛集成版仍固定自动运行 E。后续应把锁存命令映射到可恢复的正式 FSM 状态，而非用阻塞式临时流程。
 - **吸附确认联锁**：流程到位已改为“真到位才转场”（`WaitForMechanismTarget()` + 每轴独立的到位资格判定：轨迹完成 + 位置/速度死带持续 120–180 ms，参数在 `tuning.c` 的 `target_settle_time_ms`）。涉及吸盘的步骤还需同时等待“吸盘状态确认”事件；两者任一超时应进入可诊断故障。
 - **GM6020 空载偶发抖动**：当前位置环仍偶尔在目标附近抖动。保持当前可用参数；下次单轴台架调试时，记录位置误差、转速和电流，再小步调整翻转轴位置环/速度环与到位死区，不能直接照搬 Z 轴参数。
-- **调试脚本替换为正式流程 FSM**：当前 `robot_fsm.c` 的 `switch ('B')` 是一次性 smoke test；`smoke_test_started` 置位后，遇到故障不会从中断步骤恢复。比赛前改为显式步骤状态、步骤编号、超时处理和“清故障后从安全步骤重试”的状态机。
-- **CAN 命令入口**：正式 `CommandMailbox` 消费逻辑当前仍在 `#if 0` 中；FDCAN2 应用层也尚未解析命令。因此现阶段只能运行写死的测试流程，后续须定义底盘/气路板协议并将其转换为命令邮箱事件。
+- **调试脚本替换为正式流程 FSM**：当前 `robot_fsm.c` 的 `switch ('E')` 是一次性自动集成流程；`e_sequence_started` 置位后，遇到故障不会从中断步骤恢复。后续改为显式步骤状态、步骤编号、超时处理和“清故障后从安全步骤重试”的状态机。
+- **CAN 命令入口**：正式 `CommandMailbox` 消费逻辑当前仍在 `#if 0` 中。FDCAN2 的最小 A/B/C/D 协议已存在，但当前自动 E 模式未消费它；后续须将其转换为可恢复的命令/状态事件。
 - **统一控制时基**：任务周期由 `xTaskGetTickCount()` 调度，控制层另使用同源的 `app_time_ms`。目前二者同由 SysTick 驱动，不会自然漂移；后续应统一为一个时基，降低诊断和维护成本。
 - **轨迹完成浮点比较**：`Motor_IsTrajectoryComplete()` 仍依赖 `goal_counts == target_counts`。后续改为容差比较，避免浮点赋值路径变化造成“永不到位”。
 - **安全任务优先级复核**：当前 `SafetyTask` 优先级低于 `MotorControlTask`。当前控制周期短，尚非现场阻塞项；比赛版应评估提升到同级或更高优先级。

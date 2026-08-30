@@ -29,9 +29,9 @@ FDCAN IRQ 可以优先级 0，因为中断内不调用任何 FreeRTOS API；它�
 | TX | PB13，AF9 |
 | 协议 | Classic CAN，Normal mode，1 Mbps |
 | 标称时序 | 与 FDCAN1 相同：Prescaler 1，Seg1 99，Seg2 25 |
-| **Message RAM Offset** | **1**（FDCAN1 为 0；两路共用消息 RAM，offset 必须不同，否则同时工作会冲突） |
+| **Message RAM Offset** | **54**（FDCAN1 为 0；该值由 FDCAN1 的过滤器与 FIFO 分配决定，不能随意写为 1） |
 
-FDCAN2 目前只完成了引脚与时序的芯片配置，`main()` 中会执行 `MX_FDCAN2_Init()`，但 `can_bus.c` 尚未接入：没有滤波器、中断或收发绑定。它规划用作机构板与底盘/气路板的独立总线（与 FDCAN1 的四台电机总线分离），接入时走命令邮箱，不允许在 CAN 回调里直接调用 `Mechanism_Move...`。收发器与线束接好之前，不要在 CAN2 上发任何帧。
+`main()` 会执行 `MX_FDCAN2_Init()`，`can_bus.c` 已为 CAN2 配置标准帧 `0x123` 的精确过滤器、FIFO0 中断与收发绑定。`data[0]` 为 ASCII `'A'` / `'B'` / `'C'` / `'D'` 时，`Chassis_OnCanFeedback()` 仅锁存最新任务字母；不允许在 CAN 回调里直接调用 `Mechanism_Move...`。它仍是机构板与底盘/气路板的独立总线（与 FDCAN1 的四台电机总线分离）。
 
 ## USART3
 
@@ -46,7 +46,7 @@ USART3 已在启动时初始化，当前只作为预留调试/上位机接口，
 ## 必须避免的冲突
 
 - 不要同时启用 PB8/PB9 与 PA11/PA12 的 FDCAN1；本板选择 PA11/PA12。
-- FDCAN1 与 FDCAN2 的 Message RAM Offset 必须保持不同（当前 0 / 1）；都在 0 会导致两路同时收发时消息 RAM 冲突。
+- FDCAN1 与 FDCAN2 的 Message RAM Offset 必须保持不同（当前 0 / 54）；都在 0 会导致两路同时收发时消息 RAM 冲突。
 - 不要保留旧项目的 TIM2 PID 中断。控制周期来自 FreeRTOS 的 MotorControlTask（1 ms）。
 - 不要把旧项目的阻塞 `HAL_Delay()`、启动后自动 180° 翻转、或目标 38/35 圈测试动作放回 `main()`。
 - **SVC/PendSV 必须由 FreeRTOS 端口直接提供**（`FreeRTOSConfig.h` 中 `vPortSVCHandler`/`xPortPendSVHandler` 映射到向量名，CubeMX 生成的同名 C 包装须保持在 `#if 0` 内）。多套一层普通 C 函数会在首次任务切换时破坏异常栈，整个调度器静默冻结（2026-08-27 的事故根因）。

@@ -1,5 +1,6 @@
 #include "robot_fsm.h"
 #include "board_config.h"
+#include "chassis.h"
 #include "command_mailbox.h"
 #include "mechanism.h"
 #include "valve.h"
@@ -246,28 +247,29 @@ void RobotFsm_Tick(uint32_t now_ms)
   {
     /* A motion API only accepts targets in READY mode.  Keep retrying ARM
      * until the motor feedback is fresh, then execute this smoke test once. */
-    static bool smoke_test_started = false;
-    if (!smoke_test_started)
+    /* Current integration mode: run the complete E sequence once after boot.
+     * CAN2 command dispatch remains available in chassis.c, but is deliberately
+     * not the start condition until the chassis protocol is brought online. */
+    static bool e_sequence_started = false;
+    if (!e_sequence_started)
     {
       if (!Mechanism_Arm(now_ms))
         return;
-      smoke_test_started = true;
+      e_sequence_started = true;
 
-      switch ('C')
+      switch ('E')
       {
-        case 'E':
+        case 'Z':
         
         (void)Mechanism_MoveLoaderToCm(-39.0f, -33.0f);
         break;
-      case 'A':
+        case 'E':
 
 
         // 任务一
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
-        // 等z轴到位
-        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         Valve_rotator_on();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘建立真空
+        vTaskDelay(pdMS_TO_TICKS(15000U)); // 旋转吸盘建立真空
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(60.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         (void)Mechanism_TurnRotatorTo(180.0f);
@@ -275,11 +277,7 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
         Valve_rotator_off();
-        vTaskDelay(pdMS_TO_TICKS(2000U)); // 旋转吸盘释放
-        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(3.0f));
-        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-        break;
-      case 'B':
+        vTaskDelay(pdMS_TO_TICKS(60000U)); // 旋转吸盘释放
 
 
         // 任务二拿取方块1
@@ -289,7 +287,7 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLoaderToCm(39.0f, 33.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         Valve_loader_on();
-        vTaskDelay(pdMS_TO_TICKS(1000U)); // 手臂吸盘建立真空
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 手臂吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
         Valve_rotator_on();
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
@@ -298,10 +296,10 @@ void RobotFsm_Tick(uint32_t now_ms)
         vTaskDelay(pdMS_TO_TICKS(100U)); // 运输吸盘释放
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(65.0f));
         if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
-      
+
         (void)Mechanism_MoveLoaderToCm(0.0f, 0.0f);
-        break;
-      case 'C':
+
+        vTaskDelay(pdMS_TO_TICKS(20000U));
 
 
         // 任务二方块低
@@ -309,27 +307,35 @@ void RobotFsm_Tick(uint32_t now_ms)
         (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(65.0f));
         (void)Mechanism_MoveLoaderToCm(39.0f, 35.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        
+
         Valve_loader_on();
-        vTaskDelay(pdMS_TO_TICKS(1000U)); // 运输吸盘建立真空
+        vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         Valve_loader_off();
-        vTaskDelay(pdMS_TO_TICKS(1000U)); // 运输吸盘释放
-        break;
-      case 'D':
+        vTaskDelay(pdMS_TO_TICKS(20000U)); // 旋转吸盘释放
 
 
         // 任务二方块高
-        (void)Mechanism_MoveLoaderToCm(40.0f, 40.0f);
+        (void)Mechanism_MoveLoaderToCm(39.0f, 35.0f);
         // 等手到位
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
         Valve_loader_on();
         vTaskDelay(pdMS_TO_TICKS(2000U)); // 运输吸盘建立真空
         (void)Mechanism_MoveLoaderToCm(0.0f, 00.0f);
         if (!WaitForMechanismTarget(Mechanism_IsLoaderAtTarget)) return;
-        break;
+
+        vTaskDelay(pdMS_TO_TICKS(20000U)); // 旋转吸盘释放
+
+        Valve_loader_off();
+        vTaskDelay(pdMS_TO_TICKS(2000U));
+        Valve_pallet_off();
+        (void)Mechanism_MoveLiftTo(Mechanism_LiftCmToCounts(38.0f));
+        if (!WaitForMechanismTarget(Mechanism_IsLiftAtTarget)) return;
+        Valve_rotator_off();
+
+
       }
     }
   }

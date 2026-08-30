@@ -46,6 +46,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     App/Src/app_tasks.c
     App/Src/can_bus.c
+    App/Src/chassis.c
     App/Src/command_mailbox.c
     App/Src/mechanism.c
     App/Src/motor.c
