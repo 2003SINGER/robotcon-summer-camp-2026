@@ -4,6 +4,10 @@
 # 根目录完整协作/复盘说明仅保留在本机；GitHub 使用精简的 README.md。
 /README_本地完整.md
 
+# 本机解压备份与 AI 工作记忆不属于公开工程；源码目录本身仍可版本管理。
+/电控/duanhuaxianghai/mechanism_controller.rar
+**/.workbuddy-ai/
+
 # 详细成员分工、现场记录与内部复盘仅保留在本机；公开仓库不上传。
 /——本地反思/
 

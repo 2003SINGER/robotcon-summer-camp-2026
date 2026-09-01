@@ -6,6 +6,17 @@
 
 团队参加了 2026 年夏令营比赛，最终完成比赛；赛程记录为负—胜—胜—胜—负。比赛版采用了在现场可运行的最小流程：机构流程已完成可用调试，但底盘和机构控制板独立运行，底盘直行仍借助场地边缘作物理限位，部分机构动作依赖固定延时。因此，仓库中的 CAD、电控和现场记录应按其验证范围阅读，不能被外推为完整闭环控制或生产级方案。
 
+## 现场素材
+
+![RobotCon 赛场](docs/media/robotcon-field-photo.jpg)
+
+![赛前工作室合照](docs/media/robotcon-workshop-group.png)
+
+![精彩集锦封面](docs/media/robotcon-highlights-cover.jpg)
+
+- [赛场片段](docs/media/robotcon-field-clip.mp4)
+- [夏令营精彩集锦（GitHub Release）](https://github.com/2003SINGER/robotcon-summer-camp-2026/releases)
+
 ## duanhuaxianghai 的工作
 
 - 机械总体方案、底盘设计与机械设计指导；
